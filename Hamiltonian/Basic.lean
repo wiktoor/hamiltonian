@@ -28,6 +28,7 @@ class Hamiltonian (H : Type*) [Group H] extends NonAbelianGroup H where
 theorem conj_eq_or_inv (x g : Q8) :
   g * x * g⁻¹ = x ∨ g * x * g⁻¹ = x⁻¹ := by
   revert x g
+  -- proof by considering all 64 cases, decide does that for us
   decide
 
 instance : Hamiltonian Q8 where
@@ -71,11 +72,51 @@ theorem hamiltonian_iff (H : Type u) [Group H] :
     apply Subgroup.zpowers_le.mpr hn
     exact (hcyc n).conj_mem n (Subgroup.mem_zpowers n) g
 
+/--
+If every conjugate of `g` lies in `⟨g⟩`, then `⟨g⟩` is normal.
+-/
+lemma zpowers_normal_of_conj_mem {G : Type*} [Group G] (g : G)
+    (h : ∀ x : G, x * g * x⁻¹ ∈ Subgroup.zpowers g) :
+    (Subgroup.zpowers g).Normal := by
+  constructor
+  intro n hn x
+  rw [Subgroup.mem_zpowers_iff] at hn
+  rcases hn with ⟨ k, rfl ⟩
+  rw [← conj_zpow]
+  apply Subgroup.zpow_mem
+  exact h x
+
+/--
+If a group is of form `Q₈ × U × V`, where
+· `U` is abelian and all its elements have odd orders,
+· `V` is abelian and all its elements have orders `≤ 2`,
+then it is Hamiltonian.
+-/
 theorem hamiltonian_classification' (U V : CommGrpCat.{u})
-    (hU : ∀ x : U, Odd (orderOf x))
-    (hV : ∀ x : V, x ^ 2 = 1) :
+    (hU : ∀ u : U, Odd (orderOf u))
+    (hV : ∀ v : V, v ^ 2 = 1) :
     Hamiltonian (Q8 × U × V) := by
-  sorry
+  rw [hamiltonian_iff]
+  constructor
+  · constructor
+    use (i, 1, 1)
+    use (j, 1, 1)
+    -- too much calculation, used `simp?`
+    simp only [Prod.mk_mul_mk, mul_one, ne_eq, Prod.mk.injEq, and_true]
+    intro
+    contradiction
+  · intro ⟨ q, u, v ⟩
+    apply zpowers_normal_of_conj_mem
+    intro ⟨ q', u', v' ⟩
+    simp only [Prod.mk_mul_mk, Prod.inv_mk, mul_inv_cancel_comm]
+    cases conj_eq_or_inv q q'
+    · case inl h =>
+      rw [h]
+      exact Subgroup.mem_zpowers (q, u, v)
+    · case inr h =>
+      rw [h]
+      -- TODO
+      sorry
 
 theorem hamiltonian_classification (H : Type u) [Group H] [Hamiltonian H] :
     ∃ U V : CommGrpCat.{u},
