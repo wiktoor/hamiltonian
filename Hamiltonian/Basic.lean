@@ -49,3 +49,37 @@ instance : Hamiltonian Q8 where
     · case inr h =>
       rw [h]
       exact G.inv_mem hn
+
+universe u
+
+/--
+A group is Hamiltonian iff all its cyclic subgroups are Hamiltonian.
+-/
+theorem hamiltonian_iff (H : Type u) [Group H] :
+    Hamiltonian H ↔ NonAbelianGroup H ∧ ∀ g : H, (Subgroup.zpowers g).Normal := by
+  constructor
+  · intro h
+    constructor
+    · exact h.toNonAbelianGroup
+    · intro g
+      exact h.all_subgroups_normal (Subgroup.zpowers g)
+  · intro ⟨h, hcyc⟩
+    constructor
+    intro G
+    constructor
+    intro n hn g
+    apply Subgroup.zpowers_le.mpr hn
+    exact (hcyc n).conj_mem n (Subgroup.mem_zpowers n) g
+
+theorem hamiltonian_classification' (U V : CommGrpCat.{u})
+    (hU : ∀ x : U, Odd (orderOf x))
+    (hV : ∀ x : V, x ^ 2 = 1) :
+    Hamiltonian (Q8 × U × V) := by
+  sorry
+
+theorem hamiltonian_classification (H : Type u) [Group H] [Hamiltonian H] :
+    ∃ U V : CommGrpCat.{u},
+      (∀ x : U, Odd (orderOf x)) ∧
+      (∀ x : V, x ^ 2 = 1) ∧
+      Nonempty (H ≃* Q8 × U × V) := by
+  sorry
