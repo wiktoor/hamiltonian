@@ -122,30 +122,17 @@ theorem hamiltonian_classification' (U V : CommGrpCat.{u})
       simp only [zpow_natCast, Prod.pow_mk, Prod.mk.injEq]
       and_intros
       · obtain ⟨ l, hl ⟩ := hU u
-        rw [ hl,
-            show 2 * (2 * l + 1) + 1 = 4 * l + 3 by ring,
-            pow_add,
-            pow_mul,
-            show ∀ q : Q8, q ^ 4 = 1 by decide,
-            one_pow,
-            show ∀ q : Q8, q ^ 3 = q⁻¹ by decide,
-            one_mul
-          ]
-      · rw [ pow_add,
-            pow_mul',
-            pow_orderOf_eq_one,
-            one_pow,
-            one_mul,
-            pow_one
-          ]
-      · specialize hV v
-        rw [ pow_add,
-            pow_mul,
-            hV,
-            one_pow,
-            one_mul,
-            pow_one
-          ]
+        calc q ^ (2 * orderOf u + 1)
+            _ = (q ^ 4) ^ l * q ^ 3 := by rw [hl, ← pow_mul, ← pow_add]; ring_nf
+            _ = q⁻¹ := by
+              rw [show ∀ q : Q8, q ^ 4 = 1 by decide, one_pow, one_mul,
+                show ∀ q : Q8, q ^ 3 = q⁻¹ by decide]
+      · calc u ^ (2 * orderOf u + 1)
+            _ = (u ^ orderOf u) ^ 2 * u := by rw [pow_succ, pow_mul']
+            _ = u := by rw [pow_orderOf_eq_one, one_pow, one_mul]
+      · calc v ^ (2 * orderOf u + 1)
+            _ = (v ^ 2) ^ orderOf u * v := by rw [pow_succ, pow_mul]
+            _ = v := by rw [hV v, one_pow, one_mul]
 
 theorem hamiltonian_classification (H : Type u) [Group H] [Hamiltonian H] :
     ∃ U V : CommGrpCat.{u},
