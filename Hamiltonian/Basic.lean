@@ -115,8 +115,37 @@ theorem hamiltonian_classification' (U V : CommGrpCat.{u})
       exact Subgroup.mem_zpowers (q, u, v)
     · case inr h =>
       rw [h]
-      -- TODO
-      sorry
+      rw [Subgroup.mem_zpowers_iff]
+      -- in the original proof, we use CRT to find the solution for `r ≡ -1 mod 4, r ≡ 1 mod ord u`
+      -- it is easy to show that  `2 * ord u + 1` is a solution for this
+      use ((2 * orderOf u + 1 : ℕ) : ℤ)
+      simp only [zpow_natCast, Prod.pow_mk, Prod.mk.injEq]
+      and_intros
+      · obtain ⟨ l, hl ⟩ := hU u
+        rw [ hl,
+            show 2 * (2 * l + 1) + 1 = 4 * l + 3 by ring,
+            pow_add,
+            pow_mul,
+            show ∀ q : Q8, q ^ 4 = 1 by decide,
+            one_pow,
+            show ∀ q : Q8, q ^ 3 = q⁻¹ by decide,
+            one_mul
+          ]
+      · rw [ pow_add,
+            pow_mul',
+            pow_orderOf_eq_one,
+            one_pow,
+            one_mul,
+            pow_one
+          ]
+      · specialize hV v
+        rw [ pow_add,
+            pow_mul,
+            hV,
+            one_pow,
+            one_mul,
+            pow_one
+          ]
 
 theorem hamiltonian_classification (H : Type u) [Group H] [Hamiltonian H] :
     ∃ U V : CommGrpCat.{u},
