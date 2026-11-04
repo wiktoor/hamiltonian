@@ -98,3 +98,64 @@ lemma technical₂
           simp only [mul_assoc]
       _ = a ^ (n' + 1) * b ^ (n' + 1) * ⁅b, a⁆ ^ ((n' + 1) * (n' + 1 - 1) / 2) := by
           rw [exp_succ]
+
+def squares (A : Type u) [CommGroup A] : Subgroup A where
+  carrier := { x | ∃ a : A, a ^ 2 = x }
+  mul_mem' := by
+    intro a b ⟨a', ha⟩ ⟨b', hb⟩
+    use a' * b'
+    rw [mul_pow, ha, hb]
+  one_mem' := by
+    use 1
+    rw [one_pow]
+  inv_mem' := by
+    intro x ⟨x', hx⟩
+    use x'⁻¹
+    rw [inv_pow, hx]
+
+def square_roots (A : Type u) [CommGroup A] : Subgroup A where
+  carrier := { x | x ^ 2 = 1 }
+  mul_mem' := by
+    intro a b ha hb
+    change (a * b) ^ 2 = 1
+    change a ^ 2 = 1 at ha
+    change b ^ 2 = 1 at hb
+    rw [mul_pow, ha, hb, one_mul]
+  one_mem' := by
+    change 1 ^ 2 = 1
+    rw [one_pow]
+  inv_mem' := by
+    intro x hx
+    change (x⁻¹) ^ 2 = 1
+    change x ^ 2 = 1 at hx
+    rw [inv_pow, inv_eq_one, hx]
+
+/--
+If `A` is an abelian group such that
+· orders of all elements are finite
+· `A` does not contain an element of order `4`
+then `A = U × V` where
+· `U` is an abelian group in which all elements have odd orders
+· `V` is an abelian group in which all elements have order `≤ 2`
+-/
+lemma technical₃
+  (A : Type u)
+  [CommGroup A]
+  (h : ∀ a : A, orderOf a ≠ 0 ∧ orderOf a ≠ 4)
+  :  ∃ U V : Subgroup A,
+      (∀ x ∈ U, Odd (orderOf x)) ∧
+      (∀ x ∈ V, x ^ 2 = 1) ∧
+      Nonempty (A ≃* U × V) := by
+  -- `A^2 = { a^2 | a ∈ A }`
+  use squares A
+  -- `{ a | a ^ 2 = 1 }`
+  use (powMonoidHom 2).ker
+  and_intros
+  · intro x ⟨ x', hx ⟩
+    cases Nat.even_or_odd (orderOf x')
+    · case inl even =>
+      sorry
+    · case inr odd =>
+      sorry
+  · sorry
+  · sorry
