@@ -282,3 +282,11 @@ lemma technical₃
         use ⟨⟨x, hx⟩, 1⟩ 
         change x * 1 = x
         rw [mul_one]
+
+lemma technical₄ (A : Type u)
+    [CommGroup A]
+    (h : ∀ a : A, orderOf a ≠ 4)
+    (a : A)
+    (ha : orderOf a = 2)
+  : ∃ B : Subgroup A, Subgroup.IsComplement' B (Subgroup.zpowers a) := by
+    sorry
