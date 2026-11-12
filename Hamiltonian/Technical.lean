@@ -177,7 +177,18 @@ lemma technical₃
           exact pow_ne_one_of_lt_orderOf (Nat.succ_ne_zero k) (by omega)
         · simp only [z]
           rw [show 2 ^ (1 + 1) = 2 * 2 by omega]
-          rw [← pow_mul, ← mul_assoc, mul_comm, ← mul_assoc, pow_mul, pow_mul, hx, ← pow_mul, mul_comm, ← hk]
+          rw [
+            ← pow_mul, 
+            ← mul_assoc, 
+            mul_comm, 
+            ← mul_assoc, 
+            pow_mul, 
+            pow_mul, 
+            hx, 
+            ← pow_mul, 
+            mul_comm, 
+            ← hk
+          ]
           exact pow_orderOf_eq_one x
     · assumption
   and_intros
@@ -201,10 +212,10 @@ lemma technical₃
       intro p hp
       obtain ⟨⟨u, hu⟩, ⟨v, hv⟩⟩ := p
       change u * v = 1 at hp
-      simp
+      simp only [Prod.mk_eq_one, Subgroup.mk_eq_one]
       have hu₁ : u = 1 := by 
         have huv := eq_inv_of_mul_eq_one_left hp
-        have hsq := congrArg (. ^ 2) huv
+        have hsq := congrArg (· ^ 2) huv
         change v ^ 2 = 1 at hv
         rw [inv_pow, hv, inv_one] at hsq
         have hordu := orderOf_dvd_of_pow_eq_one hsq
@@ -235,7 +246,10 @@ lemma technical₃
               specialize h x
               exfalso
               exact h.1 hm
-            · rw [orderOf_pow_of_dvd (Nat.succ_ne_zero j') (by rw [hm]; exact Dvd.intro_left 4 rfl), hm]
+            · rw [
+                orderOf_pow_of_dvd (Nat.succ_ne_zero j') (by rw [hm]; exact Dvd.intro_left 4 rfl), 
+                hm
+              ]
               exact Nat.mul_div_cancel 4 (Nat.succ_pos j')
           exfalso
           specialize h z
