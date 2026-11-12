@@ -130,6 +130,8 @@ def two_torsion (A : Type u) [CommGroup A] : Subgroup A where
     change x ^ 2 = 1 at hx
     rw [inv_pow, inv_eq_one, hx]
 
+
+
 /--
 If `A` is an abelian group such that
 · orders of all elements are finite
@@ -150,8 +152,8 @@ lemma technical₃
   use squares A
   -- `{ a | a ^ 2 = 1 }`
   use two_torsion A
-  and_intros
-  · intro x ⟨ x', hx ⟩
+  have hodd : ∀ x ∈ squares A, Odd (orderOf x) := by
+    intro x ⟨ x', hx ⟩
     cases Nat.even_or_odd (orderOf x)
     · case inl heven =>
       obtain ⟨ k, hk ⟩ := even_iff_two_dvd.mp heven
@@ -178,7 +180,91 @@ lemma technical₃
           rw [← pow_mul, ← mul_assoc, mul_comm, ← mul_assoc, pow_mul, pow_mul, hx, ← pow_mul, mul_comm, ← hk]
           exact pow_orderOf_eq_one x
     · assumption
+  and_intros
+  · exact hodd
   · intro x hx
     change x ^ 2 = 1 at hx
     exact hx
-  · sorry
+  · let μ : squares A × two_torsion A →* A := {
+      toFun := fun p => (p.1 : A) * (p.2 : A)
+      map_one' := by
+        rw [Prod.fst_one, Prod.snd_one, OneMemClass.coe_one, OneMemClass.coe_one, mul_one]
+      map_mul' := by
+        intro p q
+        rw [Prod.fst_mul, Prod.snd_mul, Subgroup.coe_mul, Subgroup.coe_mul]
+        exact mul_mul_mul_comm _ _ _ _
+    }
+    suffices hμ : Function.Bijective μ by
+      exact ⟨(MulEquiv.ofBijective μ hμ).symm⟩ 
+    constructor
+    · rw [injective_iff_map_eq_one]
+      intro p hp
+      obtain ⟨⟨u, hu⟩, ⟨v, hv⟩⟩ := p
+      change u * v = 1 at hp
+      simp
+      have hu₁ : u = 1 := by 
+        have huv := eq_inv_of_mul_eq_one_left hp
+        have hsq := congrArg (. ^ 2) huv
+        change v ^ 2 = 1 at hv
+        rw [inv_pow, hv, inv_one] at hsq
+        have hordu := orderOf_dvd_of_pow_eq_one hsq
+        have hordu' : orderOf u = 1 ∨ orderOf u = 2 := (Nat.dvd_prime Nat.prime_two).mp hordu
+        cases hordu'
+        · case inl h =>
+          rw [← orderOf_eq_one_iff]
+          exact h
+        · case inr h => 
+          have hodd₁ : Odd (orderOf u) := by apply hodd; assumption
+          rw [h] at hodd₁
+          contradiction
+      constructor
+      · exact hu₁
+      · rw [hu₁, one_mul] at hp
+        exact hp
+    · intro x
+      rcases Nat.even_or_odd (orderOf x) with heven | hodd'
+      · obtain ⟨m, hm⟩ := heven
+        rcases Nat.even_or_odd m with hmeven | hmodd
+        · obtain ⟨j, hj⟩ := hmeven 
+          rw [hj, show j + j + (j + j) = 4 * j by omega] at hm
+          let z := x ^ j 
+          have hordz : orderOf z = 4 := by
+            simp only [z]
+            rcases j with _ | j'
+            · rw [mul_zero] at hm 
+              specialize h x
+              exfalso
+              exact h.1 hm
+            · rw [orderOf_pow_of_dvd (Nat.succ_ne_zero j') (by rw [hm]; exact Dvd.intro_left 4 rfl), hm]
+              exact Nat.mul_div_cancel 4 (Nat.succ_pos j')
+          exfalso
+          specialize h z
+          exact h.2 hordz
+        · obtain ⟨j, hj⟩ := hmodd 
+          have hu : x ^ (m + 1) ∈ squares A := by 
+            use x ^ (j + 1)
+            rw [← pow_mul, show (j + 1) * 2 = m + 1 by omega]
+          have hv: x ^ m ∈ two_torsion A := by 
+            change (x ^ m) ^ 2 = 1
+            rw [← pow_mul, show m * 2 = orderOf x by omega, pow_orderOf_eq_one]
+          use ⟨⟨x ^ (m + 1), hu⟩, ⟨x ^ m, hv⟩⟩ 
+          change x ^ (m + 1) * x ^ m = x
+          rw [
+            ← pow_add, 
+            show m + 1 + m = orderOf x + 1 by omega, 
+            pow_succ, 
+            pow_orderOf_eq_one, 
+            one_mul
+          ]
+      · obtain ⟨m, hm⟩ := hodd'
+        have hx : x ∈ squares A := by 
+          use x ^ (m + 1)
+          rw [
+            ← pow_mul,  
+            show (m + 1) * 2 = orderOf x + 1 by omega,
+            pow_succ, 
+            pow_orderOf_eq_one, one_mul
+          ]
+        use ⟨⟨x, hx⟩, 1⟩ 
+        change x * 1 = x
+        rw [mul_one]
