@@ -113,7 +113,7 @@ def squares (A : Type u) [CommGroup A] : Subgroup A where
     use x'⁻¹
     rw [inv_pow, hx]
 
-def square_roots (A : Type u) [CommGroup A] : Subgroup A where
+def two_torsion (A : Type u) [CommGroup A] : Subgroup A where
   carrier := { x | x ^ 2 = 1 }
   mul_mem' := by
     intro a b ha hb
@@ -146,16 +146,39 @@ lemma technical₃
       (∀ x ∈ U, Odd (orderOf x)) ∧
       (∀ x ∈ V, x ^ 2 = 1) ∧
       Nonempty (A ≃* U × V) := by
-  -- `A^2 = { a^2 | a ∈ A }`
+  -- `A^2 = { a ^ 2 | a ∈ A }`
   use squares A
   -- `{ a | a ^ 2 = 1 }`
-  use (powMonoidHom 2).ker
+  use two_torsion A
   and_intros
   · intro x ⟨ x', hx ⟩
-    cases Nat.even_or_odd (orderOf x')
-    · case inl even =>
-      sorry
-    · case inr odd =>
-      sorry
-  · sorry
+    cases Nat.even_or_odd (orderOf x)
+    · case inl heven =>
+      obtain ⟨ k, hk ⟩ := even_iff_two_dvd.mp heven
+      rcases k with _ | k
+      · rw [mul_zero] at hk
+        obtain ⟨ hfin, _ ⟩ := h x
+        exfalso
+        apply hfin
+        exact hk
+      · let z := x' ^ (k + 1)
+        suffices hz : orderOf z = 4 by
+          obtain ⟨ _, hz4 ⟩ := h z
+          exfalso
+          apply hz4
+          exact hz
+        rw [show 4 = 2 ^ (1 + 1) by omega]
+        apply orderOf_eq_prime_pow
+        · rw [pow_one]
+          simp only [z]
+          rw [← pow_mul, mul_comm, pow_mul, hx]
+          exact pow_ne_one_of_lt_orderOf (Nat.succ_ne_zero k) (by omega)
+        · simp only [z]
+          rw [show 2 ^ (1 + 1) = 2 * 2 by omega]
+          rw [← pow_mul, ← mul_assoc, mul_comm, ← mul_assoc, pow_mul, pow_mul, hx, ← pow_mul, mul_comm, ← hk]
+          exact pow_orderOf_eq_one x
+    · assumption
+  · intro x hx
+    change x ^ 2 = 1 at hx
+    exact hx
   · sorry
