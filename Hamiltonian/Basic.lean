@@ -1,4 +1,5 @@
 import Mathlib
+import Hamiltonian.Technical
 
 /-!
 A group is `Hamiltonian` if
@@ -51,13 +52,19 @@ instance : Hamiltonian Q8 where
       rw [h]
       exact G.inv_mem hn
 
+section Hamiltonian
+
 universe u
+
+variable (H : Type u) [hgroup : Group H] [hamil : Hamiltonian H]
+
+open scoped commutatorElement
 
 /--
 A group is Hamiltonian iff all its cyclic subgroups are Hamiltonian.
 -/
-theorem hamiltonian_iff (H : Type u) [Group H] :
-    Hamiltonian H ↔ NonAbelianGroup H ∧ ∀ g : H, (Subgroup.zpowers g).Normal := by
+theorem hamiltonian_iff (G : Type u) [Group G] :
+    Hamiltonian G ↔ NonAbelianGroup G ∧ ∀ g : G, (Subgroup.zpowers g).Normal := by
   constructor
   · intro h
     constructor
@@ -134,7 +141,32 @@ theorem hamiltonian_classification' (U V : CommGrpCat.{u})
             _ = (v ^ 2) ^ orderOf u * v := by rw [pow_succ, pow_mul]
             _ = v := by rw [hV v, one_pow, one_mul]
 
-theorem hamiltonian_classification (H : Type u) [Group H] [Hamiltonian H] :
+/--
+If `a ∈ H`, then for all `b ∈ H`, `⁅a, b⁆ ∈ ⟨a⟩`
+-/
+lemma hamiltonian_commutator_zpowers (a : H) : ∀ b : H, ⁅a, b⁆ ∈ Subgroup.zpowers a := by 
+  intro b
+  have zpowers_normal := hamil.all_subgroups_normal (Subgroup.zpowers a)
+  obtain ⟨ hconj ⟩ := zpowers_normal
+  rw [commutatorElement_def]
+  specialize hconj a⁻¹ ((Subgroup.zpowers a).inv_mem (Subgroup.mem_zpowers a)) b
+  rw [show a * b * a⁻¹ * b⁻¹ = a * (b * a⁻¹ * b⁻¹) by group]
+  exact (Subgroup.zpowers a).mul_mem (Subgroup.mem_zpowers a) hconj
+
+/--
+Elements of a hamiltonian group that do not commute have finite orders.
+-/
+lemma hamiltonian_noncomm_finite_orders (a b : H) (hab : a * b ≠ b * a) : orderOf a ≠ 0 := by 
+  sorry
+
+/--
+Each element of a hamiltonian group has finite order.
+-/
+lemma hamiltonian_finite_orders : ∀ h : H, orderOf h ≠ 0 := by 
+  obtain ⟨a, b, hab⟩ := NonAbelianGroup.exists_noncomm (G := H)
+  sorry
+
+theorem hamiltonian_classification :
     ∃ U V : CommGrpCat.{u},
       (∀ x : U, Odd (orderOf x)) ∧
       (∀ x : V, x ^ 2 = 1) ∧
