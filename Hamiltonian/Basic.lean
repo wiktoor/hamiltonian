@@ -222,9 +222,23 @@ lemma hamiltonian_finite_orders : ∀ h : H, orderOf h ≠ 0 := by
     · exact hamiltonian_noncomm_finite_orders H h b hhb
   · exact hamiltonian_noncomm_finite_orders H h a hha
 
-theorem hamiltonian_classification :
-    ∃ U V : CommGrpCat.{u},
-      (∀ x : U, Odd (orderOf x)) ∧
-      (∀ x : V, x ^ 2 = 1) ∧
-      Nonempty (H ≃* Q8 × U × V) := by
+theorem hamiltonian_classification : ∃ U V : Subgroup H,
+    IsMulCommutative U ∧
+    IsMulCommutative V ∧
+    (∀ x : U, Odd (orderOf x)) ∧
+    (∀ x : V, x ^ 2 = 1) ∧
+    Nonempty (H ≃* Q8 × U × V) := by 
+  -- define `a, b` as elements of `H` with minimal `ord a + ord b`
+  -- we will argue that `a` and `b` are generators of `Q8`
+  -- we need classical to make `hex` decidable
+  classical 
+  have hex : ∃ n, ∃ a b : H, a * b ≠ b * a ∧ orderOf a + orderOf b = n := by
+    obtain ⟨a, b, hab⟩ := NonAbelianGroup.exists_noncomm (G := H)
+    exact ⟨_, a, b, hab, rfl⟩
+  obtain ⟨a, b, hab, hn⟩ := Nat.find_spec hex
+  have hmin : ∀ x y : H, x * y ≠ y * x → orderOf a + orderOf b ≤ orderOf x + orderOf y := by
+    intro x y hxy
+    rw [hn]
+    exact Nat.find_min' hex ⟨x, y, hxy, rfl⟩
   sorry
+
