@@ -248,6 +248,15 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     intro x y hxy
     rw [hn]
     exact Nat.find_min' hex ⟨x, y, hxy, rfl⟩
+  clear hn
+  -- WLOG, we assume that `ord b ≤ ord a`. 
+  -- otherwise, we would have to follow the same reasoning twice
+  wlog hle : orderOf b ≤ orderOf a generalizing a b
+  · apply this b a (Ne.symm hab)
+    · intro x y hxy
+      rw [add_comm]
+      exact hmin x y hxy
+    · omega
   -- we proceed to prove that `ord ⁅a,b⁆ = p` for some prime `p`
   let c := ⁅a, b⁆
   have hc1 : c ≠ 1 := by
