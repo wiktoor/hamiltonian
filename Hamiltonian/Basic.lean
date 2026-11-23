@@ -154,6 +154,14 @@ lemma hamiltonian_commutator_zpowers (a : H) : ∀ b : H, ⁅a, b⁆ ∈ Subgrou
   exact (Subgroup.zpowers a).mul_mem (Subgroup.mem_zpowers a) hconj
 
 /--
+If `a, b ∈ H`, then `⁅a, b⁆` and `a` commute.
+-/
+lemma hamiltonian_commutator_comm_left (a b : H) : Commute ⁅a, b⁆ a := by
+  obtain ⟨r, hr⟩ := Subgroup.mem_zpowers_iff.mp (hamiltonian_commutator_zpowers H a b)
+  rw [← hr]
+  exact (Commute.refl a).zpow_left r
+
+/--
 Elements of a hamiltonian group that do not commute have finite orders.
 
 NOTE: in the original proof, I proved that `c ^ |r| = 1` which would require handling cases when
@@ -240,5 +248,45 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     intro x y hxy
     rw [hn]
     exact Nat.find_min' hex ⟨x, y, hxy, rfl⟩
+  -- we proceed to prove that `ord ⁅a,b⁆ = p` for some prime `p`
+  let c := ⁅a, b⁆
+  have hc1 : c ≠ 1 := by
+    rw [ne_eq, commutatorElement_eq_one_iff_mul_comm]
+    exact hab
+  have ha0 : orderOf a ≠ 0 := 
+    hamiltonian_finite_orders H a
+  have ha1 : orderOf a ≠ 1 := by
+    rw [ne_eq, orderOf_eq_one_iff]
+    intro ha
+    rw [ha] at hab
+    simp at hab
+  obtain ⟨p, hp, hpa⟩ := Nat.exists_prime_and_dvd ha1
+  have hap : a ^ p * b = b * a ^ p := by
+    by_contra hne
+    have h := hmin (a ^ p) b hne
+    rw [orderOf_pow_of_dvd hp.ne_zero hpa] at h
+    simp at h
+    have h' := Nat.div_lt_self (Nat.pos_of_ne_zero ha0) hp.one_lt
+    omega
+  have hcp : c ^ p = 1 := by
+    have h : b * a * b⁻¹ = ⁅a, b⁆⁻¹ * a := by
+      rw [commutatorElement_def]
+      group
+    have h' : ⁅a, b⁆⁻¹ ^ p * a ^ p = a ^ p := by
+      rw [
+        ← (Commute.inv_left (hamiltonian_commutator_comm_left H a b)).mul_pow,
+        ← h,
+        conj_pow,
+        ← hap,
+        mul_inv_cancel_right
+      ]
+    simp only [commutatorElement_inv, mul_eq_right] at h'
+    change ⁅a, b⁆ ^ p = 1
+    rw [← commutatorElement_inv, inv_pow, inv_eq_one]
+    exact h'
+  -- I don't really understand why it's needed but without it, hcp' won't work
+  have := Fact.mk hp
+  have hcp' : orderOf c = p := 
+    orderOf_eq_prime hcp hc1
   sorry
 
