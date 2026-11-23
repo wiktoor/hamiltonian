@@ -255,6 +255,8 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     exact hab
   have ha0 : orderOf a ≠ 0 := 
     hamiltonian_finite_orders H a
+  have hb0 : orderOf b ≠ 0 :=
+    hamiltonian_finite_orders H b
   have ha1 : orderOf a ≠ 1 := by
     rw [ne_eq, orderOf_eq_one_iff]
     intro ha
@@ -268,25 +270,65 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     simp at h
     have h' := Nat.div_lt_self (Nat.pos_of_ne_zero ha0) hp.one_lt
     omega
-  have hcp : c ^ p = 1 := by
+  have hcq : ∀ q : ℕ, q.Prime → (q ∣ orderOf a) → c ^ q = 1 := by
+    intro q hq hqa
     have h : b * a * b⁻¹ = ⁅a, b⁆⁻¹ * a := by
       rw [commutatorElement_def]
       group
-    have h' : ⁅a, b⁆⁻¹ ^ p * a ^ p = a ^ p := by
+    have haq : a ^ q * b = b * a ^ q := by
+      by_contra hne
+      have h := hmin (a ^ q) b hne
+      rw [orderOf_pow_of_dvd hq.ne_zero hqa] at h
+      simp at h
+      have h' := Nat.div_lt_self (Nat.pos_of_ne_zero ha0) hq.one_lt
+      omega
+    have h' : ⁅a, b⁆⁻¹ ^ q * a ^ q = a ^ q := by
       rw [
         ← (Commute.inv_left (hamiltonian_commutator_comm_left H a b)).mul_pow,
         ← h,
         conj_pow,
-        ← hap,
+        ← haq,
         mul_inv_cancel_right
       ]
-    simp only [commutatorElement_inv, mul_eq_right] at h'
-    change ⁅a, b⁆ ^ p = 1
-    rw [← commutatorElement_inv, inv_pow, inv_eq_one]
+    change ⁅a, b⁆ ^ q = 1
+    rw [mul_eq_right, inv_pow, inv_eq_one] at h'
     exact h'
+  have hcq' : ∀ q : ℕ, q.Prime → q ∣ orderOf b → c ^ q = 1 := by
+    intro q hq hqb
+    have hbq : a * b ^ q = b ^ q * a := by
+      by_contra hne
+      have h := hmin a (b ^ q) hne
+      rw [orderOf_pow_of_dvd hq.ne_zero hqb] at h
+      have h' := Nat.div_lt_self (Nat.pos_of_ne_zero hb0) hq.one_lt
+      omega
+    have hcb : Commute ⁅a, b⁆ b := by
+      have := hamiltonian_commutator_comm_left H b a
+      rwa [← commutatorElement_inv, Commute.inv_left_iff] at this
+    have h : a * b * a⁻¹ = ⁅a, b⁆ * b := by
+      rw [commutatorElement_def]; group
+    have h' : ⁅a, b⁆ ^ q * b ^ q = b ^ q := by
+      rw [← hcb.mul_pow, ← h, conj_pow, hbq, mul_inv_cancel_right]
+    rwa [mul_eq_right] at h'
+  have hcp : c ^ p = 1 := hcq p hp hpa 
   -- I don't really understand why it's needed but without it, hcp' won't work
   have := Fact.mk hp
   have hcp' : orderOf c = p := 
     orderOf_eq_prime hcp hc1
+  -- now we will proceed to prove that `ord a = p ^ n` for some `n ∈ ℕ`
+  -- and `ord b = p ^ m` for some `m ∈ ℕ`
+  have hapow : ∃ n : ℕ, orderOf a = p ^ n := by
+    use (orderOf a).primeFactorsList.length
+    apply Nat.eq_prime_pow_of_unique_prime_dvd ha0
+    intro q hq hqa
+    have hpq : p ∣ q := hcp' ▸ orderOf_dvd_of_pow_eq_one (hcq q hq hqa)
+    exact ((Nat.prime_dvd_prime_iff_eq hp hq).mp hpq).symm
+  have hbpow : ∃ n : ℕ, orderOf b = p ^ n := by
+    use (orderOf b).primeFactorsList.length
+    apply Nat.eq_prime_pow_of_unique_prime_dvd hb0
+    intro q hq hqb
+    have hpq : p ∣ q := hcp' ▸ orderOf_dvd_of_pow_eq_one (hcq' q hq hqb)
+    exact ((Nat.prime_dvd_prime_iff_eq hp hq).mp hpq).symm
+  obtain ⟨n, hn⟩ := hapow
+  obtain ⟨m, hm⟩ := hbpow
   sorry
 
