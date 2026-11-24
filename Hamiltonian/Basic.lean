@@ -663,5 +663,99 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
       _ = c := by rw [h2, ← (hca.inv_right.pow_right j).eq, mul_inv_cancel_right]
   -- `j`, `k` are no longer needed
   clear hb'_def heq hjc hkc hjp hkp j k
+
+  -- `Q` is the quaternion subgroup in H
+  -- `Z` is its centralizer
+  let Q : Subgroup H := Subgroup.closure { a, b }
+  let Z : Subgroup H := Subgroup.centralizer { a, b }
+
+  -- we want to show that `H = Q · Z = { q · z | q ∈ Q, z ∈ Z } `
+  -- note that `Q · Z` must not be a group in general
+  -- therefore we use `Q ⊔ Z` which is the smallest subgroup containing Q and Z
+  -- the two are the same if one of the two subgroups is normal
+  -- which is true for `Z`
+  -- NOTE: done by Claude
+  have hqz : Q ⊔ Z = ⊤ := by
+    have hcomm_of : ∀ z g : H, z⁻¹ * g * z = g → Commute z g := by
+      intro z g h
+      change z * g = g * z
+      calc z * g = z * (z⁻¹ * g * z) := by rw [h]
+        _ = g * z := by group
+    -- step 1: an element of order `4` is inverted by everything it does not commute with
+    have hinv : ∀ g x : H, g ^ 2 ≠ 1 → g ^ 4 = 1 → ¬ Commute x g → x⁻¹ * g * x = g⁻¹ := by
+      intro g x hg2 hg4 hxg
+      obtain ⟨t, ht⟩ := Subgroup.mem_zpowers_iff.mp
+        ((hamil.all_subgroups_normal (Subgroup.zpowers g)).conj_mem g (Subgroup.mem_zpowers g) x⁻¹)
+      have ht' : g ^ (t % 4) = x⁻¹ * g * x⁻¹⁻¹ := by
+        rw [← ht]
+        conv_rhs => rw [← Int.emod_add_ediv_mul t 4]
+        rw [zpow_add, zpow_mul', show (4 : ℤ) = ((4 : ℕ) : ℤ) by rfl, zpow_natCast, hg4,
+          one_zpow, mul_one]
+      rcases (by omega : t % 4 = 0 ∨ t % 4 = 1 ∨ t % 4 = 2 ∨ t % 4 = 3) with h | h | h | h <;>
+        rw [h] at ht'
+      · have hg : g = 1 := conj_eq_one_iff.mp (by rw [← ht', zpow_zero])
+        exact absurd (by rw [hg, one_pow]) hg2
+      · rw [zpow_one, inv_inv] at ht'
+        exact absurd (hcomm_of x g ht'.symm) hxg
+      · exfalso
+        apply hg2
+        have : x⁻¹ * g ^ 2 * x⁻¹⁻¹ = 1 := by
+          rw [← conj_pow, ← ht', ← zpow_natCast, ← zpow_mul]
+          norm_num
+          exact hg4
+        exact conj_eq_one_iff.mp this
+      · rw [inv_inv] at ht'
+        rw [← ht']
+        apply eq_inv_of_mul_eq_one_left
+        rw [show (3 : ℤ) = ((3 : ℕ) : ℤ) by rfl, zpow_natCast, ← pow_succ, hg4]
+    have hc2 : c ^ 2 = 1 := hcp
+    have ha2 : a ^ 2 ≠ 1 := hc_a ▸ hc1
+    have ha4 : a ^ 4 = 1 := by rw [show 4 = 2 * 2 by rfl, pow_mul, ← hc_a, hc2]
+    have hb2 : b ^ 2 ≠ 1 := hc_b ▸ hc1
+    have hb4 : b ^ 4 = 1 := by rw [show 4 = 2 * 2 by rfl, pow_mul, ← hc_b, hc2]
+    have hab_b : a⁻¹ * b⁻¹ * a = b := by
+      rw [show a⁻¹ * b⁻¹ * a = (a⁻¹ * b * a)⁻¹ by group,
+        hinv b a hb2 hb4 (fun h => hab h.eq), inv_inv]
+    have hba_a : b⁻¹ * a⁻¹ * b = a := by
+      rw [show b⁻¹ * a⁻¹ * b = (b⁻¹ * a * b)⁻¹ by group,
+        hinv a b ha2 ha4 (fun h => hab h.eq.symm), inv_inv]
+    have hmemZ : ∀ z : H, z ∈ Z ↔ Commute z a ∧ Commute z b := by
+      intro z
+      rw [Subgroup.mem_centralizer_iff]
+      simp only [Set.mem_insert_iff, Set.mem_singleton_iff, forall_eq_or_imp, forall_eq]
+      exact ⟨fun ⟨h1, h2⟩ => ⟨h1.symm, h2.symm⟩, fun ⟨h1, h2⟩ => ⟨h1.eq.symm, h2.eq.symm⟩⟩
+    -- step 2: one of `x`, `x * a`, `x * b`, `x * b * a` lies in `Z`
+    have hstep2 : ∀ x : H, x ∈ Z ∨ x * a ∈ Z ∨ x * b ∈ Z ∨ x * b * a ∈ Z := by
+      intro x
+      by_cases hxa : Commute x a <;> by_cases hxb : Commute x b
+      · exact Or.inl ((hmemZ x).mpr ⟨hxa, hxb⟩)
+      · refine Or.inr (Or.inl ((hmemZ _).mpr ⟨hxa.mul_left (Commute.refl a), ?_⟩))
+        apply hcomm_of
+        rw [show (x * a)⁻¹ * b * (x * a) = a⁻¹ * (x⁻¹ * b * x) * a by group,
+          hinv b x hb2 hb4 hxb, hab_b]
+      · refine Or.inr (Or.inr (Or.inl ((hmemZ _).mpr ⟨?_, hxb.mul_left (Commute.refl b)⟩)))
+        apply hcomm_of
+        rw [show (x * b)⁻¹ * a * (x * b) = b⁻¹ * (x⁻¹ * a * x) * b by group,
+          hinv a x ha2 ha4 hxa, hba_a]
+      · refine Or.inr (Or.inr (Or.inr ((hmemZ _).mpr ⟨?_, ?_⟩))) <;> apply hcomm_of
+        · rw [show (x * b * a)⁻¹ * a * (x * b * a) = a⁻¹ * (b⁻¹ * (x⁻¹ * a * x) * b) * a by group,
+            hinv a x ha2 ha4 hxa, hba_a]
+          group
+        · rw [show (x * b * a)⁻¹ * b * (x * b * a) = a⁻¹ * (b⁻¹ * (x⁻¹ * b * x) * b) * a by group,
+            hinv b x hb2 hb4 hxb, show b⁻¹ * b⁻¹ * b = b⁻¹ by group, hab_b]
+    -- step 3: if `x * w ∈ Z` for some `w ∈ Q`, then `x = (x * w) * w⁻¹ ∈ Q ⊔ Z`
+    have ha_mem : a ∈ Q := Subgroup.subset_closure (by simp)
+    have hb_mem : b ∈ Q := Subgroup.subset_closure (by simp)
+    have hw : ∀ x w : H, w ∈ Q → x * w ∈ Z → x ∈ Q ⊔ Z := by
+      intro x w hw hz
+      rw [show x = x * w * w⁻¹ by group]
+      exact Subgroup.mul_mem _ (Subgroup.mem_sup_right hz) (Subgroup.mem_sup_left (Q.inv_mem hw))
+    rw [eq_top_iff]
+    intro x _
+    rcases hstep2 x with h | h | h | h
+    · exact Subgroup.mem_sup_right h
+    · exact hw x a ha_mem h
+    · exact hw x b hb_mem h
+    · exact hw x (b * a) (Q.mul_mem hb_mem ha_mem) (by rwa [mul_assoc] at h)
   sorry
 
