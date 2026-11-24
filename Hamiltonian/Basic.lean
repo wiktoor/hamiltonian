@@ -52,15 +52,30 @@ instance : Hamiltonian Q8 where
       rw [h]
       exact G.inv_mem hn
 
+open scoped commutatorElement in
 /--
-Another presentation of the quaternion group 
-`Q8 = ⟨x, y | x ^ 4 = 1, x ^ 2 = y ^ 2, y * x * y⁻¹ = x⁻¹⟩`
+Another presentation of the quaternion group
+`Q8 = ⟨x, y | x ^ 2 = y ^ 2 = ⁅x, y⁆, ⁅x, y⁆ ^ 2 = 1⟩`.
+The extra assumption `⁅x, y⁆ ≠ 1` makes the homomorphism injective
+(otherwise e.g. `x = y = 1` satisfies the relations).
 
 NOTE: proof done by Claude.
 -/
 lemma quaternion_embedding {G : Type*} [Group G] (x y : G)
-    (hx : orderOf x = 4) (hy : y ^ 2 = x ^ 2) (hxy : y * x * y⁻¹ = x⁻¹) :
+    (h1 : x ^ 2 = y ^ 2) (h2 : x ^ 2 = ⁅x, y⁆) (h3 : ⁅x, y⁆ ^ 2 = 1) (h4 : ⁅x, y⁆ ≠ 1) :
     ∃ φ : Q8 →* G, Function.Injective φ ∧ φ i = x ∧ φ j = y := by
+  -- first we derive `x ^ 4 = 1`, `x ^ 2 = y ^ 2` and `y * x * y⁻¹ = x⁻¹`
+  have hx : orderOf x = 4 := by
+    rw [show 4 = 2 ^ (1 + 1) by norm_num]
+    apply orderOf_eq_prime_pow
+    · rw [pow_one, h2]
+      exact h4
+    · rw [show 2 ^ (1 + 1) = 2 * 2 by norm_num, pow_mul, h2, h3]
+  have hy : y ^ 2 = x ^ 2 := h1.symm
+  have hxy : y * x * y⁻¹ = x⁻¹ := by
+    have h : x * y * x⁻¹ * y⁻¹ = x ^ 2 := by rw [← commutatorElement_def, h2]
+    calc y * x * y⁻¹ = (x⁻¹ * (x * y * x⁻¹ * y⁻¹))⁻¹ := by group
+      _ = x⁻¹ := by rw [h]; group
   -- powers of `x` only depend on the exponent mod `4`
   have key : ∀ m n : ℕ, (m : ZMod (2 * 2)) = n → x ^ m = x ^ n := by
     intro m n h
@@ -575,7 +590,7 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     have hlt : p ^ (m - 1) < p ^ m := Nat.pow_lt_pow_right hp.one_lt (by omega)
     omega
   -- NOTE: done by Claude (but the statement)
-  have hn2p2 : n = 2 ∧ p = 2 := by
+  have hn2m2p2 : n = 2 ∧ m = 2 ∧ p = 2 := by
     have hmn : m ≤ n := by
       rw [hm, hn] at hle
       exact (Nat.pow_le_pow_iff_right hp.one_lt).mp hle
@@ -594,15 +609,59 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
       rw [Nat.mul_div_assoc _ h2]
       exact Dvd.dvd.mul_right (Dvd.dvd.mul_left (dvd_pow_self p (by omega)) _) _
     -- `p = 2` and `n ≥ 3` is impossible: `2 ^ (n - 1) / 2` is still even
-    refine ⟨?_, hp2⟩
-    by_contra hn2
-    apply hp_nmid
-    subst hp2
-    have h : j * k * 2 ^ (n - 1) * (2 ^ (m - 1) - 1)
-        = (j * k * 2 ^ (n - 3) * (2 ^ (m - 1) - 1) * 2) * 2 := by
-      rw [show n - 1 = n - 3 + 2 by omega, pow_add]
-      ring
-    rw [h, Nat.mul_div_cancel _ two_pos]
-    exact dvd_mul_left 2 _
+    have hn2 : n = 2 := by
+      by_contra hn2
+      apply hp_nmid
+      rw [hp2]
+      have h : j * k * 2 ^ (n - 1) * (2 ^ (m - 1) - 1)
+          = (j * k * 2 ^ (n - 3) * (2 ^ (m - 1) - 1) * 2) * 2 := by
+        rw [show n - 1 = n - 3 + 2 by omega, pow_add]
+        ring
+      rw [h, Nat.mul_div_cancel _ two_pos]
+      exact dvd_mul_left 2 _
+    -- `2 ≤ m ≤ n = 2`
+    exact ⟨hn2, by omega, hp2⟩
+
+  -- assumption decluttering -> replace n, m, p with 2 and j, k with 1
+  -- from now on `n = m = p = 2`
+  obtain ⟨rfl, rfl, rfl⟩ := hn2m2p2
+  norm_num at hn hm hjc hkc heq hcp hcp'
+  -- `b'` simplifies to `a⁻¹ ^ j * b ^ k`; we forget its definition and keep only this equation
+  have hb'_def : b' = a⁻¹ ^ j * b ^ k := by
+    simp only [b', Nat.sub_self, pow_zero, mul_one]
+  clear_value b'
+  -- these were only needed to derive `n = m = p = 2`, or follow from `hn` and `hm`
+  clear hn0 hm0 hp_nmid hpa hap hcq hcq' this hp ha0 hb0 ha1 hb1 hle hex
+  -- `j` and `k` are odd, so they only matter mod `4` (for `a`, `b`) or mod `2` (for `c`)
+  have hc_a : c = a ^ 2 := by
+    rw [hjc, pow_eq_pow_iff_modEq, hn]
+    unfold Nat.ModEq
+    omega
+  have hc_b : c = b ^ 2 := by
+    rw [hkc, pow_eq_pow_iff_modEq, hm]
+    unfold Nat.ModEq
+    omega
+  have hb'2 : b' ^ 2 = a ^ 2 := by
+    have hjk : j * k % 2 = 1 :=
+      Nat.odd_iff.mp (Nat.odd_mul.mpr ⟨Nat.odd_iff.mpr (by omega), Nat.odd_iff.mpr (by omega)⟩)
+    rw [heq, ← pow_mod_orderOf, hcp', hjk, pow_one, hc_a]
+  have hcomm : ⁅a, b'⁆ = c := by
+    have hca : Commute c a := hamiltonian_commutator_comm_left H a b
+    have hcb : Commute c b := by
+      have := hamiltonian_commutator_comm_left H b a
+      rwa [← commutatorElement_inv, Commute.inv_left_iff] at this
+    have hck : c ^ k = c := by
+      rw [← pow_mod_orderOf, hcp', show k % 2 = 1 by omega, pow_one]
+    have h1 : ⁅b ^ k, a⁆ = c⁻¹ ^ k := by
+      rw [technical₁ b a (by rw [← commutatorElement_inv]; exact hcb.inv_left)
+        (by rw [← commutatorElement_inv]; exact hca.inv_left) k, ← commutatorElement_inv]
+    have h2 : ⁅a, b ^ k⁆ = c := by
+      rw [← commutatorElement_inv, h1, inv_pow, inv_inv, hck]
+    rw [hb'_def]
+    calc ⁅a, a⁻¹ ^ j * b ^ k⁆ = a⁻¹ ^ j * ⁅a, b ^ k⁆ * (a⁻¹ ^ j)⁻¹ := by
+          simp only [commutatorElement_def]; group
+      _ = c := by rw [h2, ← (hca.inv_right.pow_right j).eq, mul_inv_cancel_right]
+  -- `j`, `k` are no longer needed
+  clear hb'_def heq hjc hkc hjp hkp j k
   sorry
 
