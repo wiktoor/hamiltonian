@@ -411,7 +411,7 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
   -- the orginal work shows that `⟨a, b⟩ = ⟨a, b'⟩` from which it easily follows that 
   -- a and b' do not commute. it turned out to be lengthy and Claude found a much
   -- more concise argument
-  -- NOTE: done by Claude
+  -- NOTE: done by Claude (but the statement)
   have hab'_noncomm : a * b' ≠ b' * a := by
     intro h
     apply hab
@@ -430,5 +430,47 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     have h'' := hbk.pow_right l
     rw [← pow_mul, ← pow_mod_orderOf, hl, pow_one] at h''
     exact h''
+  -- an extremely messy and technical, but simple: straighforwardly apply `technical₂` and then 
+  -- perform basic algebra
+  -- NOTE: done by Claude (but the statement)
+  have heq : b' ^ (p ^ (m - 1)) = c ^ (j * k * p ^ (n - 1) * (p ^ (m - 1) - 1) / 2) := by
+    have hca : Commute c a := hamiltonian_commutator_comm_left H a b
+    have hcb : Commute c b := by
+      have := hamiltonian_commutator_comm_left H b a
+      rwa [← commutatorElement_inv, Commute.inv_left_iff] at this
+    have hmn : m ≤ n := by
+      rw [hm, hn] at hle
+      exact (Nat.pow_le_pow_iff_right hp.one_lt).mp hle
+    -- `⁅a⁻¹, b⁆ = c⁻¹`
+    have h1 : ⁅a⁻¹, b⁆ = c⁻¹ := by
+      calc ⁅a⁻¹, b⁆ = a⁻¹ * (c⁻¹ * a) := by
+            simp only [c, commutatorElement_def]; group
+        _ = c⁻¹ := by rw [hca.inv_left.eq, inv_mul_cancel_left]
+    -- `⁅b, a⁻¹ ^ J⁆ = c ^ J`
+    have h2 : ⁅b, a⁻¹ ^ (j * p ^ (n - m))⁆ = c ^ (j * p ^ (n - m)) := by
+      rw [← commutatorElement_inv, technical₁ a⁻¹ b (h1 ▸ hca.inv_left.inv_right)
+        (h1 ▸ hcb.inv_left), h1, inv_pow, inv_inv]
+    -- `⁅b ^ k, a⁻¹ ^ J⁆ = c ^ (J * k)`
+    have h3 : ⁅b ^ k, a⁻¹ ^ (j * p ^ (n - m))⁆ = c ^ (j * p ^ (n - m) * k) := by
+      rw [technical₁ b _ (h2 ▸ hcb.pow_left _)
+        (h2 ▸ (hca.inv_right.pow_right _).pow_left _), h2, ← pow_mul]
+    have hx : Commute (c ^ (j * p ^ (n - m) * k)) (a⁻¹ ^ (j * p ^ (n - m))) :=
+      (hca.inv_right.pow_right _).pow_left _
+    have hy : Commute (c ^ (j * p ^ (n - m) * k)) (b ^ k) := (hcb.pow_right _).pow_left _
+    have hexp : p ^ (n - m) * p ^ (m - 1) = p ^ (n - 1) := by
+      rw [← pow_add]; congr 1; omega
+    change (a⁻¹ ^ (j * p ^ (n - m)) * b ^ k) ^ p ^ (m - 1) = _
+    rw [technical₂ _ _ (by rw [← commutatorElement_inv, h3]; exact hx.inv_left)
+      (by rw [← commutatorElement_inv, h3]; exact hy.inv_left), h3]
+    -- the `a`- and `b`-parts cancel
+    rw [← pow_mul, ← pow_mul, inv_pow, mul_assoc j, hexp, ← hjc, ← hkc, inv_mul_cancel,
+      one_mul, ← pow_mul]
+    -- exponent arithmetic
+    congr 1
+    have h2 : 2 ∣ p ^ (m - 1) * (p ^ (m - 1) - 1) := (Nat.even_mul_pred_self _).two_dvd
+    rw [← Nat.mul_div_assoc _ h2]
+    congr 1
+    rw [← hexp]
+    ring
   sorry
 
