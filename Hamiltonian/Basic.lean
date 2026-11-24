@@ -472,6 +472,7 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     congr 1
     rw [← hexp]
     ring
+  -- NOTE: done by Claude (but the statement)
   have hp_nmid : ¬ p ∣ j * k * p ^ (n - 1) * (p ^ (m - 1) - 1) / 2 := by
     intro hdvd
     -- by minimality, `orderOf b ≤ orderOf b'`
@@ -485,5 +486,35 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
       Nat.le_of_dvd (pow_pos hp.pos _) (orderOf_dvd_of_pow_eq_one hb'1)
     have hlt : p ^ (m - 1) < p ^ m := Nat.pow_lt_pow_right hp.one_lt (by omega)
     omega
+  -- NOTE: done by Claude (but the statement)
+  have hn2p2 : n = 2 ∧ p = 2 := by
+    have hmn : m ≤ n := by
+      rw [hm, hn] at hle
+      exact (Nat.pow_le_pow_iff_right hp.one_lt).mp hle
+    -- `m = 1` (and in particular `n = 1`) is impossible: the exponent is `0`
+    have hm2 : 2 ≤ m := by
+      by_contra hm1
+      apply hp_nmid
+      rw [show m = 1 by omega]
+      simp
+    -- `p` odd is impossible: `p ^ (m - 1) - 1` is even, so `p ∣ p ^ (n - 1)` divides the exponent
+    have hp2 : p = 2 := by
+      by_contra hp2
+      apply hp_nmid
+      have h2 : 2 ∣ p ^ (m - 1) - 1 :=
+        (Nat.Odd.sub_odd ((hp.odd_of_ne_two hp2).pow) odd_one).two_dvd
+      rw [Nat.mul_div_assoc _ h2]
+      exact Dvd.dvd.mul_right (Dvd.dvd.mul_left (dvd_pow_self p (by omega)) _) _
+    -- `p = 2` and `n ≥ 3` is impossible: `2 ^ (n - 1) / 2` is still even
+    refine ⟨?_, hp2⟩
+    by_contra hn2
+    apply hp_nmid
+    subst hp2
+    have h : j * k * 2 ^ (n - 1) * (2 ^ (m - 1) - 1)
+        = (j * k * 2 ^ (n - 3) * (2 ^ (m - 1) - 1) * 2) * 2 := by
+      rw [show n - 1 = n - 3 + 2 by omega, pow_add]
+      ring
+    rw [h, Nat.mul_div_cancel _ two_pos]
+    exact dvd_mul_left 2 _
   sorry
 
