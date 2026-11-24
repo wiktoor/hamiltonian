@@ -52,6 +52,94 @@ instance : Hamiltonian Q8 where
       rw [h]
       exact G.inv_mem hn
 
+/--
+Another presentation of the quaternion group 
+`Q8 = ⟨x, y | x ^ 4 = 1, x ^ 2 = y ^ 2, y * x * y⁻¹ = x⁻¹⟩`
+
+NOTE: proof done by Claude.
+-/
+lemma quaternion_embedding {G : Type*} [Group G] (x y : G)
+    (hx : orderOf x = 4) (hy : y ^ 2 = x ^ 2) (hxy : y * x * y⁻¹ = x⁻¹) :
+    ∃ φ : Q8 →* G, Function.Injective φ ∧ φ i = x ∧ φ j = y := by
+  -- powers of `x` only depend on the exponent mod `4`
+  have key : ∀ m n : ℕ, (m : ZMod (2 * 2)) = n → x ^ m = x ^ n := by
+    intro m n h
+    rw [pow_eq_pow_iff_modEq, hx]
+    exact (ZMod.natCast_eq_natCast_iff _ _ _).mp h
+  have hinv : x⁻¹ = x ^ 3 := by
+    rw [inv_eq_iff_mul_eq_one, ← pow_succ', show 3 + 1 = orderOf x by omega, pow_orderOf_eq_one]
+  -- moving `y` past powers of `x`
+  have hs1 : SemiconjBy y x x⁻¹ := by
+    unfold SemiconjBy
+    rw [← hxy]
+    group
+  have hs2 : SemiconjBy y x⁻¹ x := by
+    simpa using hs1.inv_right
+  have hB : ∀ n : ℕ, y * x⁻¹ ^ n = x ^ n * y := fun n => (hs2.pow_right n).eq
+  let φ : Q8 →* G := {
+    toFun := fun q => match q with
+      | .a k => x ^ k.val
+      | .xa k => y * x ^ k.val
+    map_one' := by
+      change x ^ (0 : ZMod (2 * 2)).val = 1
+      rw [ZMod.val_zero, pow_zero]
+    map_mul' := by
+      rintro (i | i) (j | j)
+      · change x ^ (i + j).val = x ^ i.val * x ^ j.val
+        rw [← pow_add]
+        apply key
+        revert i j
+        decide
+      · change y * x ^ (j - i).val = x ^ i.val * (y * x ^ j.val)
+        rw [← mul_assoc, ← hB, hinv, ← pow_mul, mul_assoc, ← pow_add]
+        congr 1
+        apply key
+        revert i j
+        decide
+      · change y * x ^ (i + j).val = y * x ^ i.val * x ^ j.val
+        rw [mul_assoc, ← pow_add]
+        congr 1
+        apply key
+        revert i j
+        decide
+      · change x ^ ((2 : ℕ) + j - i : ZMod (2 * 2)).val = y * x ^ i.val * (y * x ^ j.val)
+        rw [← mul_assoc, mul_assoc y, ← hB, ← mul_assoc y y, ← sq y, hy, hinv, ← pow_mul,
+          ← pow_add, ← pow_add]
+        apply key
+        revert i j
+        decide
+  }
+  refine ⟨φ, ?_, ?_, ?_⟩
+  · rw [injective_iff_map_eq_one]
+    rintro (k | k) h
+    · -- `x ^ k = 1` with `k < 4 = orderOf x` forces `k = 0`
+      change x ^ k.val = 1 at h
+      have hdvd := orderOf_dvd_of_pow_eq_one h
+      rw [hx] at hdvd
+      have hlt := ZMod.val_lt k
+      have hk : k.val = 0 := by omega
+      rw [ZMod.val_eq_zero] at hk
+      rw [hk]
+      rfl
+    · -- `y * x ^ k = 1` would make `y` a power of `x`, so `x = x⁻¹`, contradicting `orderOf x = 4`
+      exfalso
+      change y * x ^ k.val = 1 at h
+      rw [eq_inv_of_mul_eq_one_left h] at hxy
+      have hxx : x = x⁻¹ := by
+        rw [← hxy]
+        group
+      have h2 : x ^ 2 = 1 := by
+        calc x ^ 2 = x * x := sq x
+          _ = x * x⁻¹ := by rw [← hxx]
+          _ = 1 := mul_inv_cancel x
+      have hdvd := orderOf_dvd_of_pow_eq_one h2
+      rw [hx] at hdvd
+      omega
+  · change x ^ (1 : ZMod (2 * 2)).val = x
+    rw [show (1 : ZMod (2 * 2)).val = 1 from rfl, pow_one]
+  · change y * x ^ (0 : ZMod (2 * 2)).val = y
+    rw [ZMod.val_zero, pow_zero, mul_one]
+
 section Hamiltonian
 
 universe u
