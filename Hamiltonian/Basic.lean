@@ -271,6 +271,11 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     intro ha
     rw [ha] at hab
     simp at hab
+  have hb1 : orderOf b ≠ 1 := by
+    rw [ne_eq, orderOf_eq_one_iff]
+    intro hb
+    rw [hb] at hab
+    simp at hab
   obtain ⟨p, hp, hpa⟩ := Nat.exists_prime_and_dvd ha1
   have hap : a ^ p * b = b * a ^ p := by
     by_contra hne
@@ -339,5 +344,69 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     exact ((Nat.prime_dvd_prime_iff_eq hp hq).mp hpq).symm
   obtain ⟨n, hn⟩ := hapow
   obtain ⟨m, hm⟩ := hbpow
+  have hn0 : n ≠ 0 := by
+    intro h
+    rw [h, pow_zero] at hn
+    exact ha1 hn
+  have hm0 : m ≠ 0 := by
+    intro h
+    rw [h, pow_zero] at hm
+    exact hb1 hm
+  have hcj : ∃ j : ℕ, ¬ p ∣ j ∧ c = a ^ (j * p ^ (n - 1)) := by
+    have hmem : c ∈ Submonoid.powers a := 
+      (orderOf_ne_zero_iff.mp ha0).mem_powers_iff_mem_zpowers.mpr 
+        (hamiltonian_commutator_zpowers H a b)
+    obtain ⟨k, hk⟩ := (Submonoid.mem_powers_iff _ _).mp hmem
+    have hdvd : p ^ (n - 1) * p ∣ k * p := by
+      rw [← pow_succ, Nat.sub_add_cancel (Nat.pos_of_ne_zero hn0), ← hn]
+      apply orderOf_dvd_of_pow_eq_one
+      rw [pow_mul, hk, hcp]
+    obtain ⟨j, hj⟩ := Nat.dvd_of_mul_dvd_mul_right hp.pos hdvd
+    use j
+    and_intros
+    · rintro ⟨ i, rfl ⟩ 
+      apply hc1
+      rw [
+        ← hk, 
+        hj, 
+        ← mul_assoc, 
+        ← pow_succ, 
+        Nat.sub_add_cancel (Nat.pos_of_ne_zero hn0), 
+        ← hn, 
+        pow_mul, 
+        pow_orderOf_eq_one, 
+        one_pow
+      ]
+    · rw [← hk, hj, mul_comm]
+  have hck : ∃ k : ℕ, ¬ p ∣ k ∧ c = b ^ (k * p ^ (m - 1)) := by
+    have hmem : c ∈ Submonoid.powers b := by
+      have h := Subgroup.inv_mem _ (hamiltonian_commutator_zpowers H b a)
+      rw [commutatorElement_inv] at h
+      exact (orderOf_ne_zero_iff.mp hb0).mem_powers_iff_mem_zpowers.mpr h
+    obtain ⟨k, hk⟩ := (Submonoid.mem_powers_iff _ _).mp hmem
+    have hdvd : p ^ (m - 1) * p ∣ k * p := by
+      rw [← pow_succ, Nat.sub_add_cancel (Nat.pos_of_ne_zero hm0), ← hm]
+      apply orderOf_dvd_of_pow_eq_one
+      rw [pow_mul, hk, hcp]
+    obtain ⟨j, hj⟩ := Nat.dvd_of_mul_dvd_mul_right hp.pos hdvd
+    use j
+    and_intros
+    · rintro ⟨ i, rfl ⟩ 
+      apply hc1
+      rw [
+        ← hk, 
+        hj, 
+        ← mul_assoc, 
+        ← pow_succ, 
+        Nat.sub_add_cancel (Nat.pos_of_ne_zero hm0), 
+        ← hm, 
+        pow_mul, 
+        pow_orderOf_eq_one, 
+        one_pow
+      ]
+    · rw [← hk, hj, mul_comm]
+  obtain ⟨j, ⟨hjp, hjc⟩⟩ := hcj
+  obtain ⟨k, ⟨hkp, hkc⟩⟩ := hck
+  let b' := a⁻¹ ^ (j * p ^ (n - m)) * b ^ k
   sorry
 
