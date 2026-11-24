@@ -472,5 +472,18 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     congr 1
     rw [← hexp]
     ring
+  have hp_nmid : ¬ p ∣ j * k * p ^ (n - 1) * (p ^ (m - 1) - 1) / 2 := by
+    intro hdvd
+    -- by minimality, `orderOf b ≤ orderOf b'`
+    have hmin' := hmin a b' hab'_noncomm
+    -- if `p` divides the exponent, then `b' ^ (p ^ (m - 1)) = c ^ (p * t) = 1`
+    have hb'1 : b' ^ (p ^ (m - 1)) = 1 := by
+      obtain ⟨t, ht⟩ := hdvd
+      rw [heq, ht, pow_mul, hcp, one_pow]
+    -- so `orderOf b' ≤ p ^ (m - 1) < p ^ m = orderOf b`
+    have hle' : orderOf b' ≤ p ^ (m - 1) :=
+      Nat.le_of_dvd (pow_pos hp.pos _) (orderOf_dvd_of_pow_eq_one hb'1)
+    have hlt : p ^ (m - 1) < p ^ m := Nat.pow_lt_pow_right hp.one_lt (by omega)
+    omega
   sorry
 
