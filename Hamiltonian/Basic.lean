@@ -408,5 +408,27 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
   obtain ⟨j, ⟨hjp, hjc⟩⟩ := hcj
   obtain ⟨k, ⟨hkp, hkc⟩⟩ := hck
   let b' := a⁻¹ ^ (j * p ^ (n - m)) * b ^ k
+  -- the orginal work shows that `⟨a, b⟩ = ⟨a, b'⟩` from which it easily follows that 
+  -- a and b' do not commute. it turned out to be lengthy and Claude found a much
+  -- more concise argument
+  -- NOTE: done by Claude
+  have hab'_noncomm : a * b' ≠ b' * a := by
+    intro h
+    apply hab
+    have hx : Commute a (a⁻¹ ^ (j * p ^ (n - m))) :=
+      (Commute.refl a).inv_right.pow_right _
+    have hbk : Commute a (b ^ k) := by
+      have h' : Commute a ((a⁻¹ ^ (j * p ^ (n - m)))⁻¹ * (a⁻¹ ^ (j * p ^ (n - m)) * b ^ k)) :=
+        hx.inv_right.mul_right h
+      rwa [inv_mul_cancel_left] at h'
+    have hcop : Nat.Coprime k (orderOf b) := by
+      rw [hm]
+      exact Nat.Coprime.pow_right m 
+        (Nat.coprime_comm.mp ((Nat.Prime.coprime_iff_not_dvd hp).mpr hkp))
+    have hb1' : 1 < orderOf b := by omega
+    obtain ⟨l, -, hl⟩ := Nat.exists_mul_mod_eq_one_of_coprime hcop hb1'
+    have h'' := hbk.pow_right l
+    rw [← pow_mul, ← pow_mod_orderOf, hl, pow_one] at h''
+    exact h''
   sorry
 
