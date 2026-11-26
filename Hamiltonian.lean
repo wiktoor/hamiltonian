@@ -1,1 +1,3 @@
-import Hamiltonian.Basic
+module
+
+public import Hamiltonian.Basic

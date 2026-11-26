@@ -1,6 +1,13 @@
-import Mathlib
+module
 
-#check Subgroup.center
+public import Mathlib
+
+/-!
+Technical lemmas used in the classification of Hamiltonian groups.
+-/
+
+@[expose] public section
+
 #check commutatorElement_def
 #check Subgroup.closure
 
@@ -299,4 +306,81 @@ lemma technical₄ (A : Type u)
     (a : A)
     (ha : orderOf a = 2)
   : ∃ B : Subgroup A, Subgroup.IsComplement' B (Subgroup.zpowers a) := by
-    sorry
+    -- NOTE: done by Claude
+    -- idea: `A ⧸ A²` is a vector space over `ZMod 2` in which `a` is nonzero,
+    -- so some linear functional `φ` has `φ a ≠ 0`; then `B = ker φ` works
+    classical
+    have ha1 : a ≠ 1 := fun h1 => by rw [h1, orderOf_one] at ha; omega
+    have ha2 : a ^ 2 = 1 := ha ▸ pow_orderOf_eq_one a
+    -- `a` is not a square, otherwise its square root would have order `4`
+    have ha_sq : a ∉ squares A := by
+      rintro ⟨x, hx⟩
+      apply h x
+      have hx4 : x ^ 4 = 1 := by rw [show 4 = 2 * 2 by rfl, pow_mul, hx, ha2]
+      have hd : orderOf x ∣ 4 := orderOf_dvd_of_pow_eq_one hx4
+      have hnd : ¬ orderOf x ∣ 2 := fun hd2 => ha1 (hx ▸ orderOf_dvd_iff_pow_eq_one.mp hd2)
+      have hle : orderOf x ≤ 4 := Nat.le_of_dvd (by norm_num) hd
+      interval_cases (orderOf x) <;> simp_all
+    -- `V = A ⧸ A²`, written additively, is a vector space over `ZMod 2`
+    let V := Additive (A ⧸ squares A)
+    have h2 : ∀ v : V, 2 • v = 0 := by
+      intro v
+      obtain ⟨y, hy⟩ := QuotientGroup.mk_surjective (Additive.toMul v)
+      have hv : v = Additive.ofMul (QuotientGroup.mk y) := by rw [hy]; rfl
+      rw [hv]
+      change Additive.ofMul ((QuotientGroup.mk y : A ⧸ squares A) ^ 2) = Additive.ofMul 1
+      rw [← QuotientGroup.mk_pow, (QuotientGroup.eq_one_iff (y ^ 2)).mpr
+        (show y ^ 2 ∈ squares A from ⟨y, rfl⟩)]
+    let : Module (ZMod 2) V := AddCommGroup.zmodModule h2
+    -- a linear functional `φ` not vanishing on `a`
+    let π : A → V := fun x => Additive.ofMul (QuotientGroup.mk x)
+    have hπmul : ∀ x y : A, π (x * y) = π x + π y := fun _ _ => rfl
+    have hπa : π a ≠ 0 := fun h0 => ha_sq ((QuotientGroup.eq_one_iff a).mp h0)
+    obtain ⟨φ, hφ⟩ := Module.Projective.exists_dual_ne_zero (ZMod 2) hπa
+    let χ : A → ZMod 2 := fun x => φ (π x)
+    have hχmul : ∀ x y : A, χ (x * y) = χ x + χ y := fun x y => by
+      simp only [χ, hπmul, map_add]
+    have hχ1 : χ 1 = 0 := by
+      have : π 1 = 0 := rfl
+      simp only [χ, this, map_zero]
+    have hχa : χ a = 1 := by
+      have : ∀ z : ZMod 2, z ≠ 0 → z = 1 := by decide
+      exact this _ hφ
+    -- `B = ker χ`
+    let B : Subgroup A :=
+      { carrier := { x | χ x = 0 }
+        mul_mem' := fun {x y} hx hy => by
+          have hx : χ x = 0 := hx
+          have hy : χ y = 0 := hy
+          change χ (x * y) = 0
+          rw [hχmul, hx, hy, add_zero]
+        one_mem' := hχ1
+        inv_mem' := fun {x} hx => by
+          have hx : χ x = 0 := hx
+          change χ x⁻¹ = 0
+          have := hχmul x x⁻¹
+          rw [mul_inv_cancel, hχ1, hx, zero_add] at this
+          exact this.symm }
+    refine ⟨B, Subgroup.isComplement'_of_disjoint_and_mul_eq_univ ?_ ?_⟩
+    · -- `B ∩ ⟨a⟩ = 1`, since `⟨a⟩ = {1, a}` and `a ∉ B`
+      rw [Subgroup.disjoint_def]
+      intro x hxB hxa
+      obtain ⟨k, rfl⟩ := Subgroup.mem_zpowers_iff.mp hxa
+      rw [← zpow_mod_orderOf, ha]
+      rcases Int.emod_two_eq_zero_or_one k with hk | hk
+      · rw [show ((2 : ℕ) : ℤ) = 2 by rfl, hk, zpow_zero]
+      · exfalso
+        change χ (a ^ k) = 0 at hxB
+        rw [← zpow_mod_orderOf, ha, show ((2 : ℕ) : ℤ) = 2 by rfl, hk, zpow_one, hχa] at hxB
+        exact one_ne_zero hxB
+    · -- every `x` is `x * 1` or `(x * a) * a` with the first factor in `B`
+      refine Set.eq_univ_of_forall fun x => ?_
+      by_cases hx : χ x = 0
+      · exact ⟨x, hx, 1, Subgroup.one_mem _, mul_one x⟩
+      · refine ⟨x * a, ?_, a, Subgroup.mem_zpowers a, ?_⟩
+        · change χ (x * a) = 0
+          have : ∀ z : ZMod 2, z ≠ 0 → z = 1 := by decide
+          rw [hχmul, this _ hx, hχa]
+          rfl
+        · change x * a * a = x
+          rw [mul_assoc, ← sq, ha2, mul_one]

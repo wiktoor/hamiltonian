@@ -1,5 +1,7 @@
-import Mathlib
-import Hamiltonian.Technical
+module
+
+public import Mathlib
+public import Hamiltonian.Technical
 
 /-!
 A group is `Hamiltonian` if
@@ -11,6 +13,8 @@ The goal is each Hamiltonian group `H` is of form `Q × U × V` where
 · `U` is an abelian group such that all its elements have odd orders
 · `V` is an abelian group with elements of orders at most `2`
 -/
+
+@[expose] public section
 
 abbrev Q8 := QuaternionGroup 2
 
