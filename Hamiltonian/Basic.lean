@@ -333,12 +333,19 @@ lemma hamiltonian_finite_orders : ∀ h : H, orderOf h ≠ 0 := by
     · exact hamiltonian_noncomm_finite_orders H h b hhb
   · exact hamiltonian_noncomm_finite_orders H h a hha
 
-theorem hamiltonian_classification : ∃ U V : Subgroup H,
-    IsMulCommutative U ∧
-    IsMulCommutative V ∧
-    (∀ x : U, Odd (orderOf x)) ∧
-    (∀ x : V, x ^ 2 = 1) ∧
-    Nonempty (H ≃* Q8 × U × V) := by 
+/--
+A hamiltonian group `H` contains `a` and `b` such that `⟨a, b⟩ = Q8` and `c = ⁅a, b⁆`.
+-/
+lemma hamiltonian_contains_quaternion : ∃ a b c : H, 
+    a * b ≠ b * a ∧
+    (∀ (x y : H), x * y ≠ y * x → orderOf a + orderOf b ≤ orderOf x + orderOf y) ∧
+    c = ⁅a, b⁆ ∧
+    c ≠ 1 ∧
+    orderOf c = 2 ∧
+    orderOf a = 4 ∧
+    orderOf b = 4 ∧
+    c = a ^ 2 ∧
+    c = b ^ 2 := by 
   -- define `a, b` as elements of `H` with minimal `ord a + ord b`
   -- we will argue that `a` and `b` are generators of `Q8`
   -- we need classical to make `hex` decidable
@@ -663,6 +670,18 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
       _ = c := by rw [h2, ← (hca.inv_right.pow_right j).eq, mul_inv_cancel_right]
   -- `j`, `k` are no longer needed
   clear hb'_def heq hjc hkc hjp hkp j k
+  use a
+  use b
+  use c
+
+theorem hamiltonian_classification : ∃ U V : Subgroup H,
+    IsMulCommutative U ∧
+    IsMulCommutative V ∧
+    (∀ x : U, Odd (orderOf x)) ∧
+    (∀ x : V, x ^ 2 = 1) ∧
+    Nonempty (H ≃* Q8 × U × V) := by 
+  obtain ⟨ a, b, c, hab, hmin, hc, hc1, hcp, hn, hm, hc_a, hc_b ⟩ := 
+    hamiltonian_contains_quaternion H
 
   -- `Q` is the quaternion subgroup in H
   -- `Z` is its centralizer
@@ -708,7 +727,7 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
         rw [← ht']
         apply eq_inv_of_mul_eq_one_left
         rw [show (3 : ℤ) = ((3 : ℕ) : ℤ) by rfl, zpow_natCast, ← pow_succ, hg4]
-    have hc2 : c ^ 2 = 1 := hcp
+    have hc2 : c ^ 2 = 1 := hcp ▸ pow_orderOf_eq_one c
     have ha2 : a ^ 2 ≠ 1 := hc_a ▸ hc1
     have ha4 : a ^ 4 = 1 := by rw [show 4 = 2 * 2 by rfl, pow_mul, ← hc_a, hc2]
     have hb2 : b ^ 2 ≠ 1 := hc_b ▸ hc1
