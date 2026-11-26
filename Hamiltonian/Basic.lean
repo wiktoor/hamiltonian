@@ -948,5 +948,45 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     -- first isomorphism theorem: `(Q × Z) ⧸ ker φ ≃* H`
     exact ⟨((QuotientGroup.quotientMulEquivOfEq hker).symm.trans
       (QuotientGroup.quotientKerEquivOfSurjective φ hsurj)).symm⟩
+
+  -- NOTE: done by Claude
+  have h_qz1_qzn : Nonempty (QZN ≃* Q × Z₁) := by
+    -- the map `Q × Z₁ → (Q × Z) ⧸ N`, `(q, z₁) ↦ [(q, z₁)]`
+    let σ : Q × Z₁ →* QZN := (QuotientGroup.mk' N).comp ((MonoidHom.id Q).prodMap Z₁.subtype)
+    have hccpow : ∀ k : ℤ, cc ^ k = ((⟨c, hcQ⟩ : Q) ^ k, (⟨c, hcZ⟩ : Z) ^ k) := fun k => rfl
+    -- injective: if `(q, z₁) ∈ N`, then `(q, z₁) = (c ^ k, c ^ k)`, so `c ^ k ∈ Z₁ ∩ ⟨c⟩ = 1`
+    have hinj : Function.Injective σ := by
+      rw [injective_iff_map_eq_one]
+      intro x hx
+      rw [MonoidHom.comp_apply, QuotientGroup.mk'_apply, QuotientGroup.eq_one_iff] at hx
+      obtain ⟨k, hk⟩ := Subgroup.mem_zpowers_iff.mp hx
+      rw [hccpow] at hk
+      have hk1 : (⟨c, hcQ⟩ : Q) ^ k = x.1 := congrArg Prod.fst hk
+      have hk2 : (⟨c, hcZ⟩ : Z) ^ k = (x.2 : Z) := congrArg Prod.snd hk
+      have hcZk : (⟨c, hcZ⟩ : Z) ^ k = 1 :=
+        Subgroup.disjoint_def.mp hZ₁.disjoint (by rw [hk2]; exact x.2.2)
+          (Subgroup.zpow_mem_zpowers _ k)
+      have hck : c ^ k = 1 := by simpa using congrArg Subtype.val hcZk
+      refine Prod.ext ?_ (Subtype.ext ?_)
+      · rw [← hk1]
+        exact Subtype.ext (by simpa using hck)
+      · rw [← hk2, hcZk]
+        rfl
+    -- surjective: write `z = z₁ * c ^ k`, then `[(q, z)] = [(q * c ^ (-k), z₁) * cc ^ k] = σ (q * c ^ (-k), z₁)`
+    have hsurj : Function.Surjective σ := by
+      intro y
+      obtain ⟨⟨q, z⟩, rfl⟩ := QuotientGroup.mk_surjective y
+      obtain ⟨⟨⟨z₁, hz₁⟩, ⟨w, hw⟩⟩, hzw⟩ := hZ₁.2 z
+      obtain ⟨k, rfl⟩ := Subgroup.mem_zpowers_iff.mp hw
+      refine ⟨(q * (⟨c, hcQ⟩ : Q) ^ (-k), ⟨z₁, hz₁⟩), ?_⟩
+      have h : ((q, z) : Q × Z) = (q * (⟨c, hcQ⟩ : Q) ^ (-k), z₁) * cc ^ k := by
+        rw [hccpow]
+        refine Prod.ext ?_ ?_
+        · change q = q * (⟨c, hcQ⟩ : Q) ^ (-k) * (⟨c, hcQ⟩ : Q) ^ k
+          group
+        · exact hzw.symm
+      rw [h, QuotientGroup.mk_mul_of_mem _ (Subgroup.zpow_mem_zpowers cc k)]
+      rfl
+    exact ⟨(MulEquiv.ofBijective σ ⟨hinj, hsurj⟩).symm⟩
   sorry
 
