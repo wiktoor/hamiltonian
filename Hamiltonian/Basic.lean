@@ -694,55 +694,56 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
   -- the two are the same if one of the two subgroups is normal
   -- which is true for `Z`
   -- NOTE: done by Claude
+  have hcomm_of : ∀ z g : H, z⁻¹ * g * z = g → Commute z g := by
+    intro z g h
+    change z * g = g * z
+    calc z * g = z * (z⁻¹ * g * z) := by rw [h]
+      _ = g * z := by group
+  -- step 1: an element of order `4` is inverted by everything it does not commute with
+  have hinv : ∀ g x : H, g ^ 2 ≠ 1 → g ^ 4 = 1 → ¬ Commute x g → x⁻¹ * g * x = g⁻¹ := by
+    intro g x hg2 hg4 hxg
+    obtain ⟨t, ht⟩ := Subgroup.mem_zpowers_iff.mp
+      ((hamil.all_subgroups_normal (Subgroup.zpowers g)).conj_mem g (Subgroup.mem_zpowers g) x⁻¹)
+    have ht' : g ^ (t % 4) = x⁻¹ * g * x⁻¹⁻¹ := by
+      rw [← ht]
+      conv_rhs => rw [← Int.emod_add_ediv_mul t 4]
+      rw [zpow_add, zpow_mul', show (4 : ℤ) = ((4 : ℕ) : ℤ) by rfl, zpow_natCast, hg4,
+        one_zpow, mul_one]
+    rcases (by omega : t % 4 = 0 ∨ t % 4 = 1 ∨ t % 4 = 2 ∨ t % 4 = 3) with h | h | h | h <;>
+      rw [h] at ht'
+    · have hg : g = 1 := conj_eq_one_iff.mp (by rw [← ht', zpow_zero])
+      exact absurd (by rw [hg, one_pow]) hg2
+    · rw [zpow_one, inv_inv] at ht'
+      exact absurd (hcomm_of x g ht'.symm) hxg
+    · exfalso
+      apply hg2
+      have : x⁻¹ * g ^ 2 * x⁻¹⁻¹ = 1 := by
+        rw [← conj_pow, ← ht', ← zpow_natCast, ← zpow_mul]
+        norm_num
+        exact hg4
+      exact conj_eq_one_iff.mp this
+    · rw [inv_inv] at ht'
+      rw [← ht']
+      apply eq_inv_of_mul_eq_one_left
+      rw [show (3 : ℤ) = ((3 : ℕ) : ℤ) by rfl, zpow_natCast, ← pow_succ, hg4]
+  have hc2 : c ^ 2 = 1 := hcp ▸ pow_orderOf_eq_one c
+  have ha2 : a ^ 2 ≠ 1 := hc_a ▸ hc1
+  have ha4 : a ^ 4 = 1 := by rw [show 4 = 2 * 2 by rfl, pow_mul, ← hc_a, hc2]
+  have hb2 : b ^ 2 ≠ 1 := hc_b ▸ hc1
+  have hb4 : b ^ 4 = 1 := by rw [show 4 = 2 * 2 by rfl, pow_mul, ← hc_b, hc2]
+  have hab_b : a⁻¹ * b⁻¹ * a = b := by
+    rw [show a⁻¹ * b⁻¹ * a = (a⁻¹ * b * a)⁻¹ by group,
+      hinv b a hb2 hb4 (fun h => hab h.eq), inv_inv]
+  have hba_a : b⁻¹ * a⁻¹ * b = a := by
+    rw [show b⁻¹ * a⁻¹ * b = (b⁻¹ * a * b)⁻¹ by group,
+      hinv a b ha2 ha4 (fun h => hab h.eq.symm), inv_inv]
+  have hmemZ : ∀ z : H, z ∈ Z ↔ Commute z a ∧ Commute z b := by
+    intro z
+    rw [Subgroup.mem_centralizer_iff]
+    simp only [Set.mem_insert_iff, Set.mem_singleton_iff, forall_eq_or_imp, forall_eq]
+    exact ⟨fun ⟨h1, h2⟩ => ⟨h1.symm, h2.symm⟩, fun ⟨h1, h2⟩ => ⟨h1.eq.symm, h2.eq.symm⟩⟩
+
   have hqz : Q ⊔ Z = ⊤ := by
-    have hcomm_of : ∀ z g : H, z⁻¹ * g * z = g → Commute z g := by
-      intro z g h
-      change z * g = g * z
-      calc z * g = z * (z⁻¹ * g * z) := by rw [h]
-        _ = g * z := by group
-    -- step 1: an element of order `4` is inverted by everything it does not commute with
-    have hinv : ∀ g x : H, g ^ 2 ≠ 1 → g ^ 4 = 1 → ¬ Commute x g → x⁻¹ * g * x = g⁻¹ := by
-      intro g x hg2 hg4 hxg
-      obtain ⟨t, ht⟩ := Subgroup.mem_zpowers_iff.mp
-        ((hamil.all_subgroups_normal (Subgroup.zpowers g)).conj_mem g (Subgroup.mem_zpowers g) x⁻¹)
-      have ht' : g ^ (t % 4) = x⁻¹ * g * x⁻¹⁻¹ := by
-        rw [← ht]
-        conv_rhs => rw [← Int.emod_add_ediv_mul t 4]
-        rw [zpow_add, zpow_mul', show (4 : ℤ) = ((4 : ℕ) : ℤ) by rfl, zpow_natCast, hg4,
-          one_zpow, mul_one]
-      rcases (by omega : t % 4 = 0 ∨ t % 4 = 1 ∨ t % 4 = 2 ∨ t % 4 = 3) with h | h | h | h <;>
-        rw [h] at ht'
-      · have hg : g = 1 := conj_eq_one_iff.mp (by rw [← ht', zpow_zero])
-        exact absurd (by rw [hg, one_pow]) hg2
-      · rw [zpow_one, inv_inv] at ht'
-        exact absurd (hcomm_of x g ht'.symm) hxg
-      · exfalso
-        apply hg2
-        have : x⁻¹ * g ^ 2 * x⁻¹⁻¹ = 1 := by
-          rw [← conj_pow, ← ht', ← zpow_natCast, ← zpow_mul]
-          norm_num
-          exact hg4
-        exact conj_eq_one_iff.mp this
-      · rw [inv_inv] at ht'
-        rw [← ht']
-        apply eq_inv_of_mul_eq_one_left
-        rw [show (3 : ℤ) = ((3 : ℕ) : ℤ) by rfl, zpow_natCast, ← pow_succ, hg4]
-    have hc2 : c ^ 2 = 1 := hcp ▸ pow_orderOf_eq_one c
-    have ha2 : a ^ 2 ≠ 1 := hc_a ▸ hc1
-    have ha4 : a ^ 4 = 1 := by rw [show 4 = 2 * 2 by rfl, pow_mul, ← hc_a, hc2]
-    have hb2 : b ^ 2 ≠ 1 := hc_b ▸ hc1
-    have hb4 : b ^ 4 = 1 := by rw [show 4 = 2 * 2 by rfl, pow_mul, ← hc_b, hc2]
-    have hab_b : a⁻¹ * b⁻¹ * a = b := by
-      rw [show a⁻¹ * b⁻¹ * a = (a⁻¹ * b * a)⁻¹ by group,
-        hinv b a hb2 hb4 (fun h => hab h.eq), inv_inv]
-    have hba_a : b⁻¹ * a⁻¹ * b = a := by
-      rw [show b⁻¹ * a⁻¹ * b = (b⁻¹ * a * b)⁻¹ by group,
-        hinv a b ha2 ha4 (fun h => hab h.eq.symm), inv_inv]
-    have hmemZ : ∀ z : H, z ∈ Z ↔ Commute z a ∧ Commute z b := by
-      intro z
-      rw [Subgroup.mem_centralizer_iff]
-      simp only [Set.mem_insert_iff, Set.mem_singleton_iff, forall_eq_or_imp, forall_eq]
-      exact ⟨fun ⟨h1, h2⟩ => ⟨h1.symm, h2.symm⟩, fun ⟨h1, h2⟩ => ⟨h1.eq.symm, h2.eq.symm⟩⟩
     -- step 2: one of `x`, `x * a`, `x * b`, `x * b * a` lies in `Z`
     have hstep2 : ∀ x : H, x ∈ Z ∨ x * a ∈ Z ∨ x * b ∈ Z ∨ x * b * a ∈ Z := by
       intro x
@@ -776,5 +777,73 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     · exact hw x a ha_mem h
     · exact hw x b hb_mem h
     · exact hw x (b * a) (Q.mul_mem hb_mem ha_mem) (by rwa [mul_assoc] at h)
+
+  -- Z is abelian. proof by contradiction:
+  -- 1. Z does not contain an element of order 4
+  -- 2. is Z is non-abelian, then it is Hamiltonian
+  -- 3. a Hamiltonian group contains an element of order 4 (consequence of `hamiltonian_contains_quaternion`)
+  -- 4. contradiction
+  -- NOTE: done by Claude
+  have hz_abelian : IsMulCommutative Z := by
+    -- step 1: `Z` has no element of order `4`
+    -- if `z ∈ Z` has order `4`, then `b` conjugates `a * z` to `a⁻¹ * z ∉ ⟨a * z⟩`
+    have hno4 : ∀ z : H, z ∈ Z → orderOf z ≠ 4 := by
+      intro z hzZ hz4
+      have hza : Commute a z := ((hmemZ z).mp hzZ).1.symm
+      have hzb : Commute z b := ((hmemZ z).mp hzZ).2
+      have hz4' : z ^ 4 = 1 := hz4 ▸ pow_orderOf_eq_one z
+      have hz2 : z ^ 2 ≠ 1 := fun h => by
+        have := orderOf_le_of_pow_eq_one (by norm_num) h
+        omega
+      -- `z = a` is impossible, since `z` commutes with `b` and `a` does not
+      have hza' : z ≠ a := fun h => hab (h ▸ hzb.eq)
+      have hconj : b⁻¹ * (a * z) * b⁻¹⁻¹ = a⁻¹ * z := by
+        rw [inv_inv, show b⁻¹ * (a * z) * b = (b⁻¹ * a * b) * (b⁻¹ * (z * b)) by group,
+          hinv a b ha2 ha4 (fun h => hab h.eq.symm), hzb.eq, inv_mul_cancel_left]
+      obtain ⟨t, ht⟩ := Subgroup.mem_zpowers_iff.mp
+        ((hamil.all_subgroups_normal (Subgroup.zpowers (a * z))).conj_mem _
+          (Subgroup.mem_zpowers _) b⁻¹)
+      rw [hconj] at ht
+      have ht' : (a * z) ^ (t % 4) = a⁻¹ * z := by
+        rw [← ht]
+        conv_rhs => rw [← Int.emod_add_ediv_mul t 4]
+        rw [zpow_add, zpow_mul', show (4 : ℤ) = ((4 : ℕ) : ℤ) by rfl, zpow_natCast,
+          hza.mul_pow, ha4, hz4', mul_one, one_zpow, mul_one]
+      rcases (by omega : t % 4 = 0 ∨ t % 4 = 1 ∨ t % 4 = 2 ∨ t % 4 = 3) with h | h | h | h <;>
+        rw [h] at ht'
+      · -- `1 = a⁻¹ * z`, so `z = a`
+        apply hza'
+        rw [zpow_zero] at ht'
+        rw [← mul_left_cancel_iff (a := a⁻¹), ← ht', inv_mul_cancel]
+      · -- `a * z = a⁻¹ * z`, so `a ^ 2 = 1`
+        rw [zpow_one, mul_left_inj] at ht'
+        exact ha2 (by rw [sq, mul_eq_one_iff_eq_inv]; exact ht')
+      · -- `a ^ 2 * z ^ 2 = a⁻¹ * z`, so `z = a`
+        rw [show (2 : ℤ) = ((2 : ℕ) : ℤ) by rfl, zpow_natCast, hza.mul_pow] at ht'
+        apply hza'
+        calc z = a ^ 4 * z := by rw [ha4, one_mul]
+          _ = a * a * (a ^ 2 * z ^ 2) * z⁻¹ := by group
+          _ = a * a * (a⁻¹ * z) * z⁻¹ := by rw [ht']
+          _ = a := by group
+      · -- `a ^ 3 * z ^ 3 = a⁻¹ * z`, so `z ^ 2 = 1`
+        rw [show (3 : ℤ) = ((3 : ℕ) : ℤ) by rfl, zpow_natCast, hza.mul_pow] at ht'
+        apply hz2
+        calc z ^ 2 = a ^ 4 * z ^ 2 := by rw [ha4, one_mul]
+          _ = a * (a ^ 3 * z ^ 3) * z⁻¹ := by group
+          _ = a * (a⁻¹ * z) * z⁻¹ := by rw [ht']
+          _ = 1 := by group
+    -- step 2: if `Z` were non-abelian, it would be Hamiltonian
+    -- (subgroups of `Z` are normal in `H`, hence in `Z`), so it would contain an element of order `4`
+    by_contra hnc
+    have : Hamiltonian Z :=
+      { exists_noncomm := by
+          by_contra h
+          push Not at h
+          exact hnc ⟨⟨h⟩⟩
+        all_subgroups_normal := fun K => by
+          have := (hamil.all_subgroups_normal (K.map Z.subtype)).comap Z.subtype
+          rwa [Subgroup.comap_map_eq_self_of_injective Z.subtype_injective] at this }
+    obtain ⟨x, -, -, -, -, -, -, -, hx4, -, -, -⟩ := hamiltonian_contains_quaternion Z
+    exact hno4 x x.2 (by rw [Subgroup.orderOf_coe]; exact hx4)
   sorry
 
