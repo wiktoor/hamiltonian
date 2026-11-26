@@ -988,5 +988,53 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
       rw [h, QuotientGroup.mk_mul_of_mem _ (Subgroup.zpow_mem_zpowers cc k)]
       rfl
     exact ⟨(MulEquiv.ofBijective σ ⟨hinj, hsurj⟩).symm⟩
-  sorry
 
+  obtain ⟨U, V, hU, hV, ⟨e⟩⟩ := technical₃ Z₁ (fun x => by
+    rw [← Subgroup.orderOf_coe, ← Subgroup.orderOf_coe]
+    exact ⟨hamiltonian_finite_orders H _, hno4 _ (x : Z).2⟩)
+
+  
+  -- NOTE: done by Claude
+  -- `Z₁ = U × V` with `U` of odd orders and `V` of exponent `2`
+  obtain ⟨U, V, hU, hV, ⟨eZ₁⟩⟩ := technical₃ Z₁ (fun x => by
+    rw [← Subgroup.orderOf_coe, ← Subgroup.orderOf_coe]
+    exact ⟨hamiltonian_finite_orders H _, hno4 _ (x : Z).2⟩)
+  -- `Q ≃* Q8`: `Q` is the range of the embedding `ψ : Q8 → H`
+  obtain ⟨ψ, hψinj, hψi, hψj⟩ := quaternion_embedding a b
+    (by rw [← hc_a, ← hc_b]) (by rw [← hc_a, hc]) (by rw [← hc, hc2]) (by rw [← hc]; exact hc1)
+  have ha_mem : a ∈ Q := Subgroup.subset_closure (by simp)
+  have hb_mem : b ∈ Q := Subgroup.subset_closure (by simp)
+  have hQeq : Q = ψ.range := by
+    apply le_antisymm
+    · rw [Subgroup.closure_le]
+      intro x hx
+      simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hx
+      rcases hx with rfl | rfl
+      exacts [⟨i, hψi⟩, ⟨j, hψj⟩]
+    · -- every element of `Q8` is of the form `i ^ m * j ^ n`
+      rintro _ ⟨g, rfl⟩
+      obtain ⟨m, n, rfl⟩ : ∃ m n : Fin 4, g = i ^ (m : ℕ) * j ^ (n : ℕ) := by
+        revert g
+        decide
+      rw [map_mul, map_pow, map_pow, hψi, hψj]
+      exact Q.mul_mem (Q.pow_mem ha_mem _) (Q.pow_mem hb_mem _)
+  let eQ : Q ≃* Q8 := (MulEquiv.subgroupCongr hQeq).trans (MonoidHom.ofInjective hψinj).symm
+  -- embed `U` and `V` into `H` along `Z₁ → Z → H`
+  let f : Z₁ →* H := Z.subtype.comp Z₁.subtype
+  have hf : Function.Injective f := Z.subtype_injective.comp Z₁.subtype_injective
+  let eU : U ≃* U.map f := U.equivMapOfInjective f hf
+  let eV : V ≃* V.map f := V.equivMapOfInjective f hf
+  -- `H ≃* QZN ≃* Q × Z₁ ≃* Q8 × U × V`
+  obtain ⟨e1⟩ := h_qz_qzn
+  obtain ⟨e2⟩ := h_qz1_qzn
+  refine ⟨U.map f, V.map f,
+    ⟨⟨fun x y => eU.symm.injective ?_⟩⟩, ⟨⟨fun x y => eV.symm.injective ?_⟩⟩,
+    fun x => ?_, fun x => ?_,
+    ⟨e1.trans (e2.trans (eQ.prodCongr (eZ₁.trans (eU.prodCongr eV))))⟩⟩
+  · rw [map_mul, map_mul, mul_comm]
+  · rw [map_mul, map_mul, mul_comm]
+  · rw [← MulEquiv.orderOf_eq eU.symm x, ← Subgroup.orderOf_coe]
+    exact hU _ (eU.symm x).2
+  · apply eV.symm.injective
+    rw [map_pow, map_one]
+    exact Subtype.ext (hV _ (eV.symm x).2)
