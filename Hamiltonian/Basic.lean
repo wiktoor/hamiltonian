@@ -883,7 +883,70 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     (fun z => by rw [← Subgroup.orderOf_coe]; exact hno4 z z.2)
     ⟨c, hcZ⟩ (by rw [← Subgroup.orderOf_coe]; exact hcp)
 
+  -- proof that `H` is isomorphic to `QZN`
+  -- we do it using the first isomorphism theorem by considering 
+  -- `φ : Q × Z → H`
+  -- `φ(q, z) = q · z`
+  -- NOTE: done by Claude
   have h_qz_qzn : Nonempty (H ≃* QZN) := by
-    sorry
+    have hcc : c * c = 1 := by rw [← sq, ← hcp, pow_orderOf_eq_one]
+    -- the multiplication map `Q × Z → H`, a homomorphism since `Q` and `Z` commute
+    let φ : Q × Z →* H := MonoidHom.noncommCoprod Q.subtype Z.subtype
+      (fun q z => hZQ z z.2 q q.2)
+    -- `φ` is surjective: its range contains `Q` and `Z`, hence `Q ⊔ Z = ⊤`
+    have hsurj : Function.Surjective φ := by
+      have hle : Q ⊔ Z ≤ φ.range := sup_le
+        (fun q hq => ⟨(⟨q, hq⟩, 1), by change q * 1 = q; exact mul_one q⟩)
+        (fun z hz => ⟨(1, ⟨z, hz⟩), by change 1 * z = z; exact one_mul z⟩)
+      intro x
+      exact hle (hqz ▸ Subgroup.mem_top x)
+    -- `Q` is the image of an embedding `ψ : Q8 → H`
+    obtain ⟨ψ, hψinj, hψi, hψj⟩ := quaternion_embedding a b
+      (by rw [← hc_a, ← hc_b]) (by rw [← hc_a, hc]) (by rw [← hc, sq, hcc]) (by rw [← hc]; exact hc1)
+    have hQψ : Q ≤ ψ.range := by
+      rw [Subgroup.closure_le]
+      intro x hx
+      simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hx
+      rcases hx with rfl | rfl
+      exacts [⟨i, hψi⟩, ⟨j, hψj⟩]
+    -- the center of `Q8` is `{1, -1}`
+    have hcenter : ∀ g : Q8, g * i = i * g → g * j = j * g → g = one ∨ g = minus_one := by
+      decide
+    have hψ1 : ψ one = 1 := by rw [show one = 1 by rfl, map_one]
+    have hψm : ψ minus_one = c := by
+      rw [show minus_one = i * i by decide, map_mul, hψi, ← sq, hc_a]
+    -- `ker φ = N`: if `q * z = 1`, then `q = z⁻¹ ∈ Q ∩ Z = {1, c}`
+    have hker : φ.ker = N := by
+      apply le_antisymm
+      · intro x hx
+        rw [MonoidHom.mem_ker] at hx
+        change (x.1 : H) * x.2 = 1 at hx
+        have hx2 : (x.2 : H) = (x.1 : H)⁻¹ := eq_inv_of_mul_eq_one_right hx
+        have hqZ : (x.1 : H) ∈ Z := by
+          rw [← inv_inv (x.1 : H), ← hx2]
+          exact Z.inv_mem x.2.2
+        obtain ⟨hqa, hqb⟩ := (hmemZ _).mp hqZ
+        obtain ⟨g, hg⟩ := hQψ x.1.2
+        have hgi : g * i = i * g := hψinj (by rw [map_mul, map_mul, hg, hψi]; exact hqa.eq)
+        have hgj : g * j = j * g := hψinj (by rw [map_mul, map_mul, hg, hψj]; exact hqb.eq)
+        rcases hcenter g hgi hgj with rfl | rfl
+        · -- `q = 1`, so `z = 1`
+          rw [hψ1] at hg
+          have : x = 1 := Prod.ext (Subtype.ext hg.symm)
+            (Subtype.ext (by rw [hx2, ← hg, inv_one]; rfl))
+          rw [this]
+          exact N.one_mem
+        · -- `q = c`, so `z = c⁻¹ = c`
+          rw [hψm] at hg
+          have : x = cc := Prod.ext (Subtype.ext hg.symm)
+            (Subtype.ext (by rw [hx2, ← hg, inv_eq_of_mul_eq_one_right hcc]))
+          rw [this]
+          exact Subgroup.mem_zpowers cc
+      · change Subgroup.zpowers cc ≤ _
+        rw [Subgroup.zpowers_le, MonoidHom.mem_ker]
+        exact hcc
+    -- first isomorphism theorem: `(Q × Z) ⧸ ker φ ≃* H`
+    exact ⟨((QuotientGroup.quotientMulEquivOfEq hker).symm.trans
+      (QuotientGroup.quotientKerEquivOfSurjective φ hsurj)).symm⟩
   sorry
 
