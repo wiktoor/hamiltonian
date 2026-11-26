@@ -23,3 +23,10 @@ You can see my proof (in Polish) in `/files/licencjat.pdf`.
 ## Use of AI
 
 At first, I tried to formalize this without the use of AI. It turned out to be too difficult and time-consuming, so I decided to write the definitions and theorems I used in my proof and asked `Claude Opus 5.5` to fill in the details.
+
+## Usage
+
+If you want to verify the proof yourself, use:
+```sh
+lake build
+```
