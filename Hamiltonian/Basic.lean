@@ -784,10 +784,9 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
   -- 3. a Hamiltonian group contains an element of order 4 (consequence of `hamiltonian_contains_quaternion`)
   -- 4. contradiction
   -- NOTE: done by Claude
-  have hz_abelian : IsMulCommutative Z := by
-    -- step 1: `Z` has no element of order `4`
-    -- if `z ∈ Z` has order `4`, then `b` conjugates `a * z` to `a⁻¹ * z ∉ ⟨a * z⟩`
-    have hno4 : ∀ z : H, z ∈ Z → orderOf z ≠ 4 := by
+
+  -- step 1  
+  have hno4 : ∀ z : H, z ∈ Z → orderOf z ≠ 4 := by
       intro z hzZ hz4
       have hza : Commute a z := ((hmemZ z).mp hzZ).1.symm
       have hzb : Commute z b := ((hmemZ z).mp hzZ).2
@@ -832,7 +831,9 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
           _ = a * (a ^ 3 * z ^ 3) * z⁻¹ := by group
           _ = a * (a⁻¹ * z) * z⁻¹ := by rw [ht']
           _ = 1 := by group
-    -- step 2: if `Z` were non-abelian, it would be Hamiltonian
+
+  have hz_abelian : IsMulCommutative Z := by
+  -- step 2: if `Z` were non-abelian, it would be Hamiltonian
     -- (subgroups of `Z` are normal in `H`, hence in `Z`), so it would contain an element of order `4`
     by_contra hnc
     have : Hamiltonian Z :=
@@ -872,5 +873,17 @@ theorem hamiltonian_classification : ∃ U V : Subgroup H,
     rw [(hg.zpow_right k).eq, mul_inv_cancel_right]
     exact hn
   let QZN := (Q × Z) ⧸ N
+
+  let : CommGroup Z := {
+    (inferInstance : Group Z) with
+    mul_comm := hz_abelian.is_comm.comm
+  }
+  -- `Z₁` is a subgroup of `Z` such that `Z` splits into cosets `Z` and `c · Z`
+  obtain ⟨Z₁, hZ₁⟩ := technical₄ Z
+    (fun z => by rw [← Subgroup.orderOf_coe]; exact hno4 z z.2)
+    ⟨c, hcZ⟩ (by rw [← Subgroup.orderOf_coe]; exact hcp)
+
+  have h_qz_qzn : Nonempty (H ≃* QZN) := by
+    sorry
   sorry
 
